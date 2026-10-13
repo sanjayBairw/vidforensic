@@ -1,0 +1,1421 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/forensic_card.dart';
+
+import '../../history/models/history_item.dart';
+import '../../history/providers/history_provider.dart';
+
+import '../../report/presentation/report_screen.dart';
+
+import '../models/anomaly.dart';
+import '../models/forensic_results.dart';
+import '../providers/results_provider.dart';
+
+class ResultsDashboardScreen extends ConsumerStatefulWidget {
+  final String jobId;
+
+  const ResultsDashboardScreen({super.key, required this.jobId});
+
+  @override
+  ConsumerState<ResultsDashboardScreen> createState() =>
+      _ResultsDashboardScreenState();
+}
+
+class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Prevent duplicate history entries.
+  bool _historyAdded = false;
+
+  // Expand/collapse state for each detector anomaly list.
+  // Key = detector name string, Value = whether fully expanded.
+  final Map<String, bool> _expandedDetectors = {};
+
+  bool _isExpanded(String key) => _expandedDetectors[key] == true;
+
+  void _toggleDetector(String key) {
+    setState(() {
+      _expandedDetectors[key] = !_isExpanded(key);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tabController = TabController(length: 2, vsync: this);
+
+    // ============================================================
+    // ALWAYS FETCH THE CURRENT JOB
+    // ============================================================
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      debugPrint('');
+      debugPrint('==============================================');
+      debugPrint('DASHBOARD: FETCHING CURRENT JOB');
+      debugPrint('JOB ID: ${widget.jobId}');
+      debugPrint('==============================================');
+
+      await ref.read(resultsProvider.notifier).fetchResults(widget.jobId);
+
+      if (!mounted) return;
+
+      final state = ref.read(resultsProvider);
+
+      if (state.results != null && !_historyAdded) {
+        _historyAdded = true;
+
+        final res = state.results!;
+
+        ref
+            .read(historyProvider.notifier)
+            .addItem(
+              HistoryItem(
+                jobId: widget.jobId,
+                filename: res.videoName,
+                date: res.createdAt.isNotEmpty
+                    ? res.createdAt
+                    : DateTime.now().toIso8601String().split('T').first,
+                status: res.status,
+                anomalyCount:
+                    res.summary?.totalAnomalies ?? res.anomalies.length,
+              ),
+            );
+      }
+    });
+  }
+
+  // ================================================================
+  // HANDLE JOB ID CHANGES
+  // ================================================================
+
+  @override
+  void didUpdateWidget(covariant ResultsDashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.jobId != widget.jobId) {
+      _historyAdded = false;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+
+        debugPrint('');
+        debugPrint('==============================================');
+        debugPrint('DASHBOARD JOB CHANGED');
+        debugPrint('OLD JOB: ${oldWidget.jobId}');
+        debugPrint('NEW JOB: ${widget.jobId}');
+        debugPrint('==============================================');
+
+        await ref.read(resultsProvider.notifier).fetchResults(widget.jobId);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // ================================================================
+  // BUILD
+  // ================================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final resultsState = ref.watch(resultsProvider);
+
+    // ============================================================
+    // SAFETY: Do not display another job's result.
+    // ============================================================
+
+    final bool isCurrentJob = resultsState.jobId == widget.jobId;
+
+    final ForensicResults? currentResults = isCurrentJob
+        ? resultsState.results
+        : null;
+
+    // ============================================================
+    // PROCESSING / LOADING DIFFERENT JOB
+    // ============================================================
+
+    if (resultsState.isLoading || !isCurrentJob) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Job: ${widget.jobId}')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: ForensicCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    color: AppColors.primaryAccent,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Analyzing Video Sequence...',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Job ID: ${widget.jobId}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  _buildStageStep('Uploading & Validating', isDone: true),
+                  _buildStageStep(
+                    'Processing Multi-Detector Pipeline',
+                    isActive: true,
+                  ),
+                  _buildStageStep(
+                    'Synthesizing Evidence & Generating PDF',
+                    isPending: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ============================================================
+    // ERROR
+    // ============================================================
+
+    if (resultsState.error != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Job: ${widget.jobId}')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: ForensicCard(
+              borderColor: AppColors.statusError,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.statusError,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Forensic Analysis Failed',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.statusError,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Job ID: ${widget.jobId}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    resultsState.error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    label: 'Retry Analysis Fetch',
+                    icon: Icons.refresh,
+                    onPressed: () async {
+                      await ref
+                          .read(resultsProvider.notifier)
+                          .fetchResults(widget.jobId);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ============================================================
+    // NO RESULT
+    // ============================================================
+
+    if (currentResults == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Forensic Results')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ForensicCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 48,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No forensic result available.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Job ID: ${widget.jobId}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    label: 'FETCH RESULT',
+                    icon: Icons.refresh,
+                    onPressed: () async {
+                      await ref
+                          .read(resultsProvider.notifier)
+                          .fetchResults(widget.jobId);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ============================================================
+    // COMPLETED RESULTS
+    // ============================================================
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Forensic Results'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Summary'),
+            Tab(text: 'PDF Report'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildSummaryTab(context, currentResults),
+
+          // IMPORTANT: PDF uses current widget.jobId.
+          ReportScreen(jobId: widget.jobId),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // STAGE STEP
+  // ================================================================
+
+  Widget _buildStageStep(
+    String title, {
+    bool isDone = false,
+    bool isActive = false,
+    bool isPending = false,
+  }) {
+    Color color = Colors.grey;
+    IconData icon = Icons.circle_outlined;
+
+    if (isDone) {
+      color = AppColors.statusSuccess;
+      icon = Icons.check_circle;
+    } else if (isActive) {
+      color = AppColors.primaryAccent;
+      icon = Icons.sync;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? Colors.white : Colors.grey[400],
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // SUMMARY TAB
+  // ================================================================
+
+  Widget _buildSummaryTab(BuildContext context, ForensicResults? res) {
+    final ai = res?.aiDetection;
+    String rawClass = ai?.classification.trim().toUpperCase() ?? '';
+    rawClass = _normalizeClassification(rawClass);
+
+    if (rawClass.isEmpty) {
+      rawClass = 'INCONCLUSIVE';
+    }
+
+    final summary = res?.summary;
+    final int totalAnomalies =
+        summary?.totalAnomalies ?? res?.anomalies.length ?? 0;
+
+    final List<Anomaly> anomalies = res?.anomalies ?? [];
+
+    // Filter detector anomaly lists
+    final freezeAnomalies = anomalies
+        .where((a) => a.type.toUpperCase().contains('FREEZE'))
+        .toList();
+    final dupAnomalies = anomalies
+        .where((a) => a.type.toUpperCase().contains('DUPLICATE'))
+        .toList();
+    final missingAnomalies = anomalies
+        .where((a) =>
+            a.isPtsGap ||
+            a.isVisualDiscontinuity ||
+            a.type.toUpperCase().contains('MISSING'))
+        .toList();
+    final corruptedAnomalies = anomalies
+        .where((a) =>
+            a.isCorruptedFrame ||
+            a.isVisualAnomaly ||
+            a.type.toUpperCase().contains('CORRUPT'))
+        .toList();
+    final modAnomalies = anomalies
+        .where((a) => a.isModification || a.type.toUpperCase().contains('MODIF'))
+        .toList();
+    final sceneAnomalies = anomalies
+        .where((a) => a.type.toUpperCase().contains('SCENE'))
+        .toList();
+
+    // Counts
+    final int freezeCount = summary?.freezeFrames ?? freezeAnomalies.length;
+    final int dupCount = summary?.duplicateFrames ?? dupAnomalies.length;
+    final int missingCount = summary?.missingFrames ?? missingAnomalies.length;
+    final int corruptedCount = summary?.corruptedFrames ?? corruptedAnomalies.length;
+    final int modCount = summary?.modificationCandidates ?? modAnomalies.length;
+    final int sceneCount = summary?.sceneChanges ?? sceneAnomalies.length;
+
+    // Availability checks
+    final bool freezeAvailable = _isDetectorAvailable(res, 'freeze_results');
+    final bool dupAvailable = _isDetectorAvailable(res, 'duplicate_results');
+    final bool missingAvailable = _isDetectorAvailable(res, 'missing_results');
+    final bool corruptedAvailable = _isDetectorAvailable(res, 'corrupted_results');
+    final bool modAvailable = _isDetectorAvailable(res, 'modification_results');
+    final bool sceneAvailable = _isDetectorAvailable(res, 'scene_results');
+
+    // ============================================================
+    // DEBUG LOGGING
+    // ============================================================
+
+    debugPrint('');
+    debugPrint('==============================================');
+    debugPrint('DASHBOARD CURRENT JOB');
+    debugPrint('REQUESTED JOB ID: ${widget.jobId}');
+    debugPrint('PROVIDER JOB ID: ${ref.read(resultsProvider).jobId}');
+    debugPrint('VIDEO: ${res?.videoName}');
+    debugPrint('AI CLASS: $rawClass');
+    debugPrint('AI CANDIDATES: ${ai?.candidateCount ?? 0}');
+    debugPrint('TOTAL ANOMALIES: $totalAnomalies');
+    debugPrint('MISSING: $missingCount (Avail: $missingAvailable)');
+    debugPrint('FREEZE: $freezeCount (Avail: $freezeAvailable)');
+    debugPrint('DUPLICATE: $dupCount (Avail: $dupAvailable)');
+    debugPrint('CORRUPTED: $corruptedCount (Avail: $corruptedAvailable)');
+    debugPrint('MODIFIED: $modCount (Avail: $modAvailable)');
+    debugPrint('SCENE: $sceneCount (Avail: $sceneAvailable)');
+    debugPrint('==============================================');
+    debugPrint('');
+
+    Color statusColor;
+    String statusTitle;
+    IconData statusIcon;
+
+    if (rawClass == 'LIKELY_AI_GENERATED') {
+      statusColor = AppColors.statusError;
+      statusTitle = '🔴 AI GENERATED';
+      statusIcon = Icons.memory;
+    } else if (rawClass == 'INCONCLUSIVE') {
+      statusColor = Colors.orange;
+      statusTitle = '🟠 INCONCLUSIVE';
+      statusIcon = Icons.help_outline;
+    } else if (rawClass == 'LIKELY_REAL') {
+      statusColor = AppColors.statusSuccess;
+      statusTitle = '🟢 NO AI DETECTED';
+      statusIcon = Icons.verified_outlined;
+    } else {
+      statusColor = Colors.orange;
+      statusTitle = '🟠 INCONCLUSIVE';
+      statusIcon = Icons.help_outline;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+
+          // ======================================================
+          // 1. FINAL AI CLASSIFICATION RESULT CARD
+          // ======================================================
+          ForensicCard(
+            borderColor: statusColor.withValues(alpha: 0.6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 24.0,
+                horizontal: 16.0,
+              ),
+              child: Column(
+                children: [
+                  Icon(statusIcon, size: 52, color: statusColor),
+                  const SizedBox(height: 14),
+                  Text(
+                    'FINAL RESULT',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    statusTitle,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (ai != null && rawClass != 'INCONCLUSIVE') ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'Confidence: ${(ai.confidenceScore * 100).toStringAsFixed(1)}%',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Evidence: ${ai.evidenceQuality}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    ),
+                    if (ai.modelProvider.isNotEmpty &&
+                        ai.modelProvider != 'unknown') ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Provider: ${ai.modelProvider}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ======================================================
+          // 2. FORENSIC DETECTION RESULTS SECTION HEADER
+          // ======================================================
+          const Padding(
+            padding: EdgeInsets.only(left: 4.0, bottom: 12.0),
+            child: Text(
+              'FORENSIC DETECTION RESULTS',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+
+          // ------------------------------------------------------
+          // 1. FREEZE DETECTOR CARD
+          // ------------------------------------------------------
+          _buildFreezeDetectorCard(
+            isAvailable: freezeAvailable,
+            count: freezeCount,
+            anomalies: freezeAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 2. DUPLICATE DETECTOR CARD
+          // ------------------------------------------------------
+          _buildDuplicateDetectorCard(
+            isAvailable: dupAvailable,
+            count: dupCount,
+            anomalies: dupAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 3. MISSING DETECTOR CARD
+          // ------------------------------------------------------
+          _buildMissingDetectorCard(
+            isAvailable: missingAvailable,
+            count: missingCount,
+            anomalies: missingAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 4. CORRUPTED DETECTOR CARD
+          // ------------------------------------------------------
+          _buildCorruptedDetectorCard(
+            isAvailable: corruptedAvailable,
+            count: corruptedCount,
+            anomalies: corruptedAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 5. MODIFICATION DETECTOR CARD
+          // ------------------------------------------------------
+          _buildModificationDetectorCard(
+            isAvailable: modAvailable,
+            count: modCount,
+            anomalies: modAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 6. SCENE DETECTOR CARD
+          // ------------------------------------------------------
+          _buildSceneDetectorCard(
+            isAvailable: sceneAvailable,
+            count: sceneCount,
+            anomalies: sceneAnomalies,
+          ),
+          const SizedBox(height: 24),
+
+          // ======================================================
+          // 3. SUMMARY TOTAL & PDF REPORT BUTTON CARD
+          // ======================================================
+          ForensicCard(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Anomalies',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: totalAnomalies > 0
+                              ? Colors.orange.withValues(alpha: 0.2)
+                              : AppColors.statusSuccess.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: totalAnomalies > 0
+                                ? Colors.orange.withValues(alpha: 0.6)
+                                : AppColors.statusSuccess.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Text(
+                          '$totalAnomalies',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: totalAnomalies > 0
+                                ? Colors.orange
+                                : AppColors.statusSuccess,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  AppButton(
+                    label: 'VIEW PDF REPORT',
+                    icon: Icons.picture_as_pdf,
+                    onPressed: () {
+                      _tabController.animateTo(1);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // DETECTOR AVAILABILITY CHECKER
+  // ================================================================
+
+  bool _isDetectorAvailable(ForensicResults? res, String detectorKey) {
+    if (res == null) return false;
+    final raw = res.rawDetectors;
+    if (raw.containsKey(detectorKey)) return true;
+    if (raw.isNotEmpty) return false;
+    // Fallback: If summary or evidence_results exists, detector was run in pipeline
+    return res.summary != null;
+  }
+
+  // ================================================================
+  // DETECTOR CARD BUILDERS
+  // ================================================================
+
+  // 1. FREEZE DETECTOR CARD
+  Widget _buildFreezeDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('FREEZE DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO FREEZE DETECTED',
+        subtext: 'No freeze frame event was detected.',
+      );
+    }
+
+    const expandKey = 'freeze';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.orange.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '⚠️ FREEZE FRAME DETECTED',
+              color: Colors.orange,
+              icon: Icons.pause_circle_outline,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Occurrences: $count freeze event(s) detected',
+              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              final int frameCount = a.frameEnd >= a.frameStart
+                  ? (a.frameEnd - a.frameStart + 1)
+                  : (a.rawJson['frames'] as num?)?.toInt() ?? 0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow(
+                        'Frame Range', '${a.frameStart} - ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp',
+                        '${a.timestampStart.toStringAsFixed(2)}s - ${a.timestampEnd.toStringAsFixed(2)}s'),
+                    if (frameCount > 0)
+                      _buildDetailRow('Frozen Frames', '$frameCount'),
+                    _buildDetailRow(
+                        'Duration', '${a.duration.toStringAsFixed(2)}s'),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: Colors.orange,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 2. DUPLICATE DETECTOR CARD
+  Widget _buildDuplicateDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('DUPLICATE FRAME DETECTED');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO DUPLICATE FRAMES DETECTED',
+        subtext: 'No duplicate frame ranges detected.',
+      );
+    }
+
+    const expandKey = 'duplicate';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.orange.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '⚠️ DUPLICATE FRAMES DETECTED',
+              color: Colors.orange,
+              icon: Icons.control_point_duplicate,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Occurrences: $count duplicate range(s) detected',
+              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              final int frameCount = a.frameEnd >= a.frameStart
+                  ? (a.frameEnd - a.frameStart + 1)
+                  : 1;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow(
+                        'Frame Range', '${a.frameStart} - ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp',
+                        '${a.timestampStart.toStringAsFixed(2)}s - ${a.timestampEnd.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Duplicate Frames', '$frameCount'),
+                    _buildDetailRow(
+                        'Duration', '${a.duration.toStringAsFixed(2)}s'),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: Colors.orange,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 3. MISSING DETECTOR CARD
+  Widget _buildMissingDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('MISSING FRAME DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO MISSING FRAMES DETECTED',
+        subtext: 'No missing frames or timestamp gaps detected.',
+      );
+    }
+
+    const expandKey = 'missing';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.orange.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '⚠️ MISSING FRAMES DETECTED',
+              color: Colors.orange,
+              icon: Icons.movie_filter_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Missing Frames: $count',
+              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              final fBefore = a.frameBefore ?? a.frameStart;
+              final fAfter = a.frameAfter ?? a.frameEnd;
+              final tBefore = a.timestampBefore ?? a.timestampStart;
+              final tAfter = a.timestampAfter ?? a.timestampEnd;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Frame Gap', '$fBefore → $fAfter'),
+                    _buildDetailRow('Timestamp',
+                        '${tBefore.toStringAsFixed(2)}s → ${tAfter.toStringAsFixed(2)}s'),
+                    if (a.actualInterval != null)
+                      _buildDetailRow(
+                          'Actual Gap', '${a.actualInterval!.toStringAsFixed(3)}s')
+                    else
+                      _buildDetailRow(
+                          'Duration', '${a.duration.toStringAsFixed(3)}s'),
+                    if (a.expectedInterval != null)
+                      _buildDetailRow('Expected Gap',
+                          '${a.expectedInterval!.toStringAsFixed(3)}s'),
+                    if (a.gapRatio != null)
+                      _buildDetailRow('Gap Ratio',
+                          '${a.gapRatio!.toStringAsFixed(2)}x'),
+                    _buildDetailRow(
+                        'Type',
+                        a.isPtsGap
+                            ? 'PTS GAP'
+                            : (a.isVisualDiscontinuity
+                                ? 'VISUAL DISCONTINUITY'
+                                : a.type)),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: Colors.orange,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 4. CORRUPTED DETECTOR CARD
+  Widget _buildCorruptedDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('CORRUPTED FRAME DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO CORRUPTED FRAMES DETECTED',
+        subtext: 'No frame corruption or decode failures detected.',
+      );
+    }
+
+    const expandKey = 'corrupted';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: AppColors.statusError.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🔴 CORRUPTED FRAMES DETECTED',
+              color: AppColors.statusError,
+              icon: Icons.broken_image_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Occurrences: $count corrupted frame range(s) detected',
+              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow(
+                        'Frame Range', '${a.frameStart} - ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp',
+                        '${a.timestampStart.toStringAsFixed(2)}s - ${a.timestampEnd.toStringAsFixed(2)}s'),
+                    _buildDetailRow(
+                        'Error Type',
+                        a.isCorruptedFrame
+                            ? 'DECODE FAILURE'
+                            : 'VISUAL ANOMALY'),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: AppColors.statusError,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 5. MODIFICATION DETECTOR CARD
+  Widget _buildModificationDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('MODIFICATION DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO FRAME MODIFICATION DETECTED',
+        subtext: 'No suspicious spatial frame modifications detected.',
+      );
+    }
+
+    const expandKey = 'modification';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: AppColors.statusError.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🔴 FRAME MODIFICATION DETECTED',
+              color: AppColors.statusError,
+              icon: Icons.edit_attributes_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Candidates: $count modification candidate(s)',
+              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              final double scoreVal = a.score > 0
+                  ? a.score
+                  : (a.regionDifference ?? 0.0);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow(
+                        'Frame Range', '${a.frameStart} - ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp',
+                        '${a.timestampStart.toStringAsFixed(2)}s - ${a.timestampEnd.toStringAsFixed(2)}s'),
+                    _buildDetailRow(
+                        'Duration', '${a.duration.toStringAsFixed(2)}s'),
+                    if (scoreVal > 0)
+                      _buildDetailRow('Region Difference',
+                          scoreVal.toStringAsFixed(4)),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: AppColors.statusError,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 6. SCENE DETECTOR CARD
+  Widget _buildSceneDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('SCENE DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO SCENE CHANGES DETECTED',
+        subtext: 'No hard scene cuts detected.',
+      );
+    }
+
+    const expandKey = 'scene';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.teal.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🎬 SCENE CHANGES DETECTED',
+              color: Colors.tealAccent,
+              icon: Icons.movie_creation_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Scene Changes: $count scene cut(s)',
+              style: const TextStyle(fontSize: 13, color: Colors.tealAccent),
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Frame', '${a.frameStart}'),
+                    _buildDetailRow('Timestamp',
+                        '${a.timestampStart.toStringAsFixed(2)}s'),
+                    if (a.score > 0)
+                      _buildDetailRow(
+                          'Transition Score', a.score.toStringAsFixed(2)),
+                    const Divider(color: Colors.white10, height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: Colors.tealAccent,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ================================================================
+  // HELPER WIDGETS
+  // ================================================================
+
+  // Expand / collapse toggle button shown at the bottom of a detector card
+  // when there are more than 3 anomalies.
+  Widget _buildExpandToggle({
+    required String expandKey,
+    required int total,
+    required bool expanded,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4.0),
+      child: GestureDetector(
+        onTap: () => _toggleDetector(expandKey),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                expanded
+                    ? 'Show Less'
+                    : 'Show All $total Detections',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetectorCardHeader({
+    required String title,
+    required Color color,
+    required IconData icon,
+    required String statusBadgeText,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 22, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+              letterSpacing: 0.5,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            statusBadgeText,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCleanDetectorCard({
+    required String title,
+    required String subtext,
+  }) {
+    return ForensicCard(
+      borderColor: AppColors.statusSuccess.withValues(alpha: 0.4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 18.0),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 20,
+              color: AppColors.statusSuccess,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.statusSuccess,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtext,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnavailableCard(String detectorName) {
+    return ForensicCard(
+      borderColor: Colors.orange.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 18.0),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              size: 20,
+              color: Colors.orange,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🟠 $detectorName DATA UNAVAILABLE',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Detector data was not returned by backend.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================================================================
+  // CLASSIFICATION NORMALIZER
+  // ================================================================
+
+  String _normalizeClassification(String value) {
+    if (value.isEmpty) {
+      return '';
+    }
+
+    final normalized = value
+        .trim()
+        .toUpperCase()
+        .replaceAll('-', '_')
+        .replaceAll(' ', '_');
+
+    switch (normalized) {
+      case 'LIKELY_AI_GENERATED':
+      case 'AI_GENERATED':
+      case 'AI_CONTENT_CANDIDATE':
+      case 'AI_CONTENT':
+      case 'AI_GENERATED_VIDEO':
+        return 'LIKELY_AI_GENERATED';
+
+      case 'LIKELY_REAL':
+      case 'REAL':
+      case 'NO_AI_SIGNAL':
+      case 'NO_AI_SIGNAL_DETECTED':
+      case 'NO_AI_DETECTED':
+      case 'NO_AI_CONTENT':
+        return 'LIKELY_REAL';
+
+      case 'INCONCLUSIVE':
+      case 'UNKNOWN':
+      case 'UNDETERMINED':
+      case 'INSUFFICIENT_EVIDENCE':
+        return 'INCONCLUSIVE';
+
+      default:
+        return '';
+    }
+  }
+}
