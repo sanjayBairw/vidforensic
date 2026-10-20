@@ -18,6 +18,8 @@ class ComparisonSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final pct = summary.overallSimilarityPercentage;
     final sev = summary.severity;
 
@@ -72,7 +74,7 @@ class ComparisonSummaryCard extends StatelessWidget {
                     : const Icon(Icons.picture_as_pdf, size: 16),
                 label: const Text('Export PDF', style: TextStyle(fontSize: 12)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryAccent,
+                  backgroundColor: theme.colorScheme.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   visualDensity: VisualDensity.compact,
@@ -88,7 +90,7 @@ class ComparisonSummaryCard extends StatelessWidget {
             'Overall Visual Similarity',
             style: TextStyle(
               fontSize: 12,
-              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              color: secondaryTextColor,
             ),
           ),
           const SizedBox(height: 2),
@@ -108,7 +110,7 @@ class ComparisonSummaryCard extends StatelessWidget {
               ),
               Text(
                 '(${summary.totalSuspiciousIntervals} suspicious interval${summary.totalSuspiciousIntervals == 1 ? "" : "s"})',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: secondaryTextColor),
               ),
             ],
           ),
@@ -119,28 +121,32 @@ class ComparisonSummaryCard extends StatelessWidget {
             builder: (context, constraints) {
               final isWide = constraints.maxWidth >= 540;
               final tile1 = _buildMetricTile(
+                context,
                 'Avg SSIM Index',
                 summary.averageSsim.toStringAsFixed(3),
                 'Structural consistency (1.0 = match)',
                 summary.averageSsim >= 0.85 ? AppColors.successGreen : AppColors.warningOrange,
               );
               final tile2 = _buildMetricTile(
+                context,
                 'Mean Pixel Error (MAE)',
                 summary.averageMae.toStringAsFixed(3),
                 'Normalized distance (0.0 = match)',
                 summary.averageMae <= 0.05 ? AppColors.successGreen : AppColors.warningOrange,
               );
               final tile3 = _buildMetricTile(
+                context,
                 'pHash Distance',
                 summary.averagePhashDistance.toStringAsFixed(3),
                 'Gradient hash (0.0 = match)',
                 summary.averagePhashDistance <= 0.10 ? AppColors.successGreen : AppColors.warningOrange,
               );
               final tile4 = _buildMetricTile(
+                context,
                 'Overlap Duration',
                 '${summary.overlapDuration.toStringAsFixed(1)}s',
                 '${summary.totalSamplesAnalyzed} aligned sample frames',
-                AppColors.primaryAccent,
+                theme.colorScheme.primary,
               );
 
               if (isWide) {
@@ -183,21 +189,26 @@ class ComparisonSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricTile(String label, String value, String sub, Color color) {
+  Widget _buildMetricTile(BuildContext context, String label, String value, String sub, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.black12,
+          color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: secondaryTextColor),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -209,7 +220,7 @@ class ComparisonSummaryCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               sub,
-              style: const TextStyle(fontSize: 9, color: Colors.grey),
+              style: TextStyle(fontSize: 9, color: secondaryTextColor),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

@@ -82,6 +82,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     });
 
     final percentStr = (analysisState.progress.clamp(0.0, 1.0) * 100).toInt();
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     return Scaffold(
       appBar: AppBar(
@@ -101,21 +103,21 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'ANALYSIS IN PROGRESS',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryAccent,
+                          color: theme.colorScheme.primary,
                           letterSpacing: 1,
                         ),
                       ),
                       Text(
                         '$percentStr%',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryAccent,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ],
@@ -134,12 +136,14 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                     value: analysisState.progress.clamp(0.0, 1.0),
                     minHeight: 8,
                     borderRadius: BorderRadius.circular(4),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                   ),
                   if (analysisState.currentStage != null) ...[
                     const SizedBox(height: 10),
                     Text(
                       'Stage: ${analysisState.currentStage}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: secondaryTextColor),
                     ),
                   ],
                 ],
@@ -153,7 +157,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
-                color: Colors.grey[600],
+                color: secondaryTextColor,
               ),
             ),
             const SizedBox(height: 12),

@@ -46,25 +46,27 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     if (widget.evidenceItems.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.verified_outlined, size: 64, color: AppColors.statusSuccess),
-              SizedBox(height: 16),
-              Text(
+              const Icon(Icons.verified_outlined, size: 64, color: AppColors.statusSuccess),
+              const SizedBox(height: 16),
+              const Text(
                 'No Evidence Items Recorded',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'The forensic engine found no critical anomalies or evidence markers in this video file.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: secondaryTextColor, fontSize: 13),
               ),
             ],
           ),
@@ -108,7 +110,7 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
         children: [
           // 1. FORENSIC TIMELINE MAP
           ForensicCard(
-            borderColor: AppColors.primaryAccent.withValues(alpha: 0.3),
+            borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
             child: ForensicTimelineWidget(
               duration: maxTime,
               anomalies: widget.evidenceItems,
@@ -135,9 +137,24 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: ChoiceChip(
-                    label: Text(cat, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                    label: Text(
+                      cat,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : (isDark ? const Color(0xFFD1D5DB) : const Color(0xFF475569)),
+                      ),
+                    ),
                     selected: isSelected,
-                    selectedColor: AppColors.primaryAccent.withValues(alpha: 0.2),
+                    selectedColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    side: BorderSide(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : (isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0)),
+                    ),
                     onSelected: (selected) {
                       if (selected) {
                         setState(() {
@@ -155,13 +172,13 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
 
           // 3. EXPANDABLE EVIDENCE CARDS LIST
           if (filteredItems.isEmpty)
-            const ForensicCard(
+            ForensicCard(
               child: Padding(
-                padding: EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Center(
                   child: Text(
                     'No evidence items matching selected category filter.',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(color: secondaryTextColor, fontSize: 13),
                   ),
                 ),
               ),
@@ -202,12 +219,12 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
                       'Detector: ${item.detector}  •  Frames: ${item.frameStart}–${item.frameEnd}',
-                      style: TextStyle(fontSize: 11, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                      style: TextStyle(fontSize: 11, color: secondaryTextColor),
                     ),
                   ),
                   children: [
-                    const Divider(),
-                    const SizedBox(height: 6),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
 
                     // Evidence Text
                     Row(
@@ -229,27 +246,29 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildDetailRow('Frame Range', '${item.frameStart} – ${item.frameEnd} (${(item.frameEnd - item.frameStart + 1)} frames)'),
-                          _buildDetailRow('Timestamp Range', '${item.timestampStart.toStringAsFixed(2)}s – ${item.timestampEnd.toStringAsFixed(2)}s'),
-                          _buildDetailRow('Duration', '${item.duration.toStringAsFixed(2)}s'),
-                          _buildDetailRow('Anomaly Score', item.score.toStringAsFixed(4)),
-                          _buildDetailRow('Confidence Level', item.confidence.toUpperCase()),
+                          _buildDetailRow('Frame Range', '${item.frameStart} – ${item.frameEnd} (${(item.frameEnd - item.frameStart + 1)} frames)', isDark, secondaryTextColor),
+                          _buildDetailRow('Timestamp Range', '${item.timestampStart.toStringAsFixed(2)}s – ${item.timestampEnd.toStringAsFixed(2)}s', isDark, secondaryTextColor),
+                          _buildDetailRow('Duration', '${item.duration.toStringAsFixed(2)}s', isDark, secondaryTextColor),
+                          _buildDetailRow('Anomaly Score', item.score.toStringAsFixed(4), isDark, secondaryTextColor),
+                          _buildDetailRow('Confidence Level', item.confidence.toUpperCase(), isDark, secondaryTextColor),
 
-                          // PTS Gap vs Visual Discontinuity Distinction (Requirement 8)
+                          // PTS Gap vs Visual Discontinuity Distinction
                           if (item.isPtsGap)
-                            _buildDetailRow('PTS Timestamp Gap', 'PTS gap detected (${item.duration.toStringAsFixed(3)}s interval)')
+                            _buildDetailRow('PTS Timestamp Gap', 'PTS gap detected (${item.duration.toStringAsFixed(3)}s interval)', isDark, secondaryTextColor)
                           else if (item.isVisualDiscontinuity)
-                            _buildDetailRow('Missing Frames (PTS)', '0 (No PTS gap detected — visual continuity candidate only)'),
+                            _buildDetailRow('Missing Frames (PTS)', '0 (No PTS gap detected — visual continuity candidate only)', isDark, secondaryTextColor),
 
                           if (item.regions.isNotEmpty)
-                            _buildDetailRow('Region Coordinates', item.regions.join(', ')),
+                            _buildDetailRow('Region Coordinates', item.regions.join(', '), isDark, secondaryTextColor),
                         ],
                       ),
                     ),
@@ -307,17 +326,22 @@ class _EvidenceScreenState extends State<EvidenceScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, bool isDark, Color secondaryColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          Text(label, style: TextStyle(fontSize: 11, color: secondaryColor)),
           Flexible(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+              ),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),

@@ -56,6 +56,10 @@ class HistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -65,13 +69,13 @@ class HistoryScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.primaryAccent.withValues(alpha: 0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.history_toggle_off,
                 size: 56,
-                color: AppColors.primaryAccent,
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(height: 20),
@@ -82,7 +86,7 @@ class HistoryScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               'Upload a video to start your first analysis.',
-              style: TextStyle(color: Colors.grey[400], fontSize: 13),
+              style: TextStyle(color: secondaryTextColor, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -109,6 +113,8 @@ class HistoryScreen extends ConsumerWidget {
 
   Widget _buildHistoryCard(BuildContext context, WidgetRef ref, HistoryItem item) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final statusUpper = item.status.toUpperCase();
     final isCompleted = statusUpper == 'COMPLETED';
     final isProcessing = statusUpper == 'PROCESSING' || statusUpper == 'QUEUED' || statusUpper == 'UPLOADED';
@@ -167,7 +173,7 @@ class HistoryScreen extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
-                          color: Colors.grey[500],
+                          color: secondaryTextColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -206,7 +212,7 @@ class HistoryScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                  icon: Icon(Icons.delete_outline, size: 20, color: secondaryTextColor),
                   tooltip: 'Delete Job',
                   onPressed: () {
                     _showDeleteConfirmationDialog(context, ref, item);
@@ -220,7 +226,7 @@ class HistoryScreen extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: _getForensicBannerBg(item.overallForensicStatus),
+                color: _getForensicBannerBg(item.overallForensicStatus, isDark),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -228,7 +234,7 @@ class HistoryScreen extends ConsumerWidget {
                   Icon(
                     _getForensicBannerIcon(item.overallForensicStatus),
                     size: 14,
-                    color: _getForensicBannerColor(item.overallForensicStatus),
+                    color: _getForensicBannerColor(item.overallForensicStatus, isDark),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -237,7 +243,7 @@ class HistoryScreen extends ConsumerWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
-                      color: _getForensicBannerColor(item.overallForensicStatus),
+                      color: _getForensicBannerColor(item.overallForensicStatus, isDark),
                     ),
                   ),
                 ],
@@ -248,9 +254,9 @@ class HistoryScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildMetricItem('Total Anomalies', '${item.anomalyCount}', theme),
-                _buildMetricItem('AI Candidates', '${item.aiCandidates}', theme),
-                _buildMetricItem('Modifications', '${item.modificationCandidates}', theme),
+                _buildMetricItem('Total Anomalies', '${item.anomalyCount}', isDark, secondaryTextColor),
+                _buildMetricItem('AI Candidates', '${item.aiCandidates}', isDark, secondaryTextColor),
+                _buildMetricItem('Modifications', '${item.modificationCandidates}', isDark, secondaryTextColor),
               ],
             ),
           ],
@@ -259,18 +265,22 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMetricItem(String label, String value, ThemeData theme) {
+  Widget _buildMetricItem(String label, String value, bool isDark, Color secondaryColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 10, color: secondaryColor),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+          ),
         ),
       ],
     );
@@ -310,23 +320,23 @@ class HistoryScreen extends ConsumerWidget {
     }
   }
 
-  Color _getForensicBannerColor(String overallStatus) {
+  Color _getForensicBannerColor(String overallStatus, bool isDark) {
     switch (overallStatus) {
       case 'AI CONTENT CANDIDATE':
-        return Colors.amber[400]!;
+        return isDark ? Colors.amber[400]! : Colors.amber[800]!;
       case 'FORENSIC REVIEW REQUIRED':
-        return Colors.cyan[400]!;
+        return isDark ? Colors.cyan[400]! : Colors.cyan[800]!;
       case 'NO FORENSIC ANOMALIES':
         return AppColors.statusSuccess;
       case 'ANALYSIS FAILED':
         return AppColors.statusError;
       default:
-        return Colors.grey[400]!;
+        return isDark ? Colors.grey[400]! : const Color(0xFF64748B);
     }
   }
 
-  Color _getForensicBannerBg(String overallStatus) {
-    return _getForensicBannerColor(overallStatus).withValues(alpha: 0.12);
+  Color _getForensicBannerBg(String overallStatus, bool isDark) {
+    return _getForensicBannerColor(overallStatus, isDark).withValues(alpha: 0.12);
   }
 
   IconData _getForensicBannerIcon(String overallStatus) {

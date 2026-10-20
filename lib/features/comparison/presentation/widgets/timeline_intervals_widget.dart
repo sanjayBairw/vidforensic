@@ -20,6 +20,8 @@ class TimelineIntervalsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final validDuration = totalDuration > 0 ? totalDuration : 10.0;
 
     return ForensicCard(
@@ -33,8 +35,8 @@ class TimelineIntervalsWidget extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.timeline,
-                        color: AppColors.primaryAccent, size: 18),
+                    Icon(Icons.timeline,
+                        color: theme.colorScheme.primary, size: 18),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -79,9 +81,11 @@ class TimelineIntervalsWidget extends StatelessWidget {
                     height: 24,
                     width: trackWidth,
                     decoration: BoxDecoration(
-                      color: Colors.black26,
+                      color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                      ),
                     ),
                     child: Stack(
                       children: [
@@ -145,9 +149,9 @@ class TimelineIntervalsWidget extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('00:00.00', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      Text('${(validDuration / 2).toStringAsFixed(1)}s', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                      Text('${validDuration.toStringAsFixed(1)}s', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text('00:00.00', style: TextStyle(fontSize: 10, color: secondaryTextColor)),
+                      Text('${(validDuration / 2).toStringAsFixed(1)}s', style: TextStyle(fontSize: 10, color: secondaryTextColor)),
+                      Text('${validDuration.toStringAsFixed(1)}s', style: TextStyle(fontSize: 10, color: secondaryTextColor)),
                     ],
                   ),
                 ],
@@ -180,7 +184,7 @@ class TimelineIntervalsWidget extends StatelessWidget {
                   ),
                   backgroundColor: isSelected ? color.withValues(alpha: 0.2) : null,
                   side: BorderSide(
-                    color: isSelected ? color : Colors.grey.withValues(alpha: 0.3),
+                    color: isSelected ? color : (isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1)),
                   ),
                   onPressed: () => onSelectInterval(it),
                 );

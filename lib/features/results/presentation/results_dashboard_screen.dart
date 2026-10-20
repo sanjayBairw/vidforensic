@@ -379,7 +379,13 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? Colors.white : Colors.grey[400],
+                color: isActive
+                    ? (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF111827))
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[400]
+                        : const Color(0xFF64748B)),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -394,6 +400,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
   // ================================================================
 
   Widget _buildSummaryTab(BuildContext context, ForensicResults? res) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ai = res?.aiDetection;
     String rawClass = ai?.classification.trim().toUpperCase() ?? '';
     rawClass = _normalizeClassification(rawClass);
@@ -565,15 +572,15 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
           // ======================================================
           // 2. FORENSIC DETECTION RESULTS SECTION HEADER
           // ======================================================
-          const Padding(
-            padding: EdgeInsets.only(left: 4.0, bottom: 12.0),
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0, bottom: 12.0),
             child: Text(
               'FORENSIC DETECTION RESULTS',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
-                color: Colors.white70,
+                color: isDark ? Colors.white70 : const Color(0xFF64748B),
               ),
             ),
           ),
@@ -649,12 +656,12 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Total Anomalies',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: isDark ? Colors.white : const Color(0xFF111827),
                         ),
                       ),
                       Container(
@@ -743,6 +750,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ForensicCard(
       borderColor: Colors.orange.withValues(alpha: 0.6),
       child: Padding(
@@ -759,10 +767,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
             const SizedBox(height: 12),
             Text(
               'Occurrences: $count freeze event(s) detected',
-              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.orange[200] : Colors.orange[900]),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               final int frameCount = a.frameEnd >= a.frameStart
@@ -782,7 +790,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                       _buildDetailRow('Frozen Frames', '$frameCount'),
                     _buildDetailRow(
                         'Duration', '${a.duration.toStringAsFixed(2)}s'),
-                    const Divider(color: Colors.white10, height: 12),
+                    const Divider(height: 12),
                   ],
                 ),
               );
@@ -820,6 +828,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     const expandKey = 'duplicate';
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ForensicCard(
       borderColor: Colors.orange.withValues(alpha: 0.6),
@@ -837,10 +846,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
             const SizedBox(height: 12),
             Text(
               'Occurrences: $count duplicate range(s) detected',
-              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.orange[200] : Colors.orange[900]),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               final int frameCount = a.frameEnd >= a.frameStart
@@ -890,10 +899,12 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     if (count == 0 && anomalies.isEmpty) {
       return _buildCleanDetectorCard(
         title: '✓ NO MISSING FRAMES DETECTED',
-        subtext: 'No missing frames or timestamp gaps detected.',
+        subtext: 'No PTS gaps or visual discontinuities detected.',
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final warningColor = isDark ? Colors.orange[300]! : Colors.orange[800]!;
     const expandKey = 'missing';
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
@@ -907,17 +918,17 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
           children: [
             _buildDetectorCardHeader(
               title: '⚠️ MISSING FRAMES DETECTED',
-              color: Colors.orange,
+              color: warningColor,
               icon: Icons.movie_filter_outlined,
               statusBadgeText: 'DETECTED',
             ),
             const SizedBox(height: 12),
             Text(
               'Missing Frames: $count',
-              style: TextStyle(fontSize: 13, color: Colors.orange[200]),
+              style: TextStyle(fontSize: 13, color: warningColor),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(height: 1),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               final fBefore = a.frameBefore ?? a.frameStart;
@@ -952,7 +963,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                             : (a.isVisualDiscontinuity
                                 ? 'VISUAL DISCONTINUITY'
                                 : a.type)),
-                    const Divider(color: Colors.white10, height: 12),
+                    const Divider(height: 12),
                   ],
                 ),
               );
@@ -962,7 +973,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 expandKey: expandKey,
                 total: anomalies.length,
                 expanded: expanded,
-                color: Colors.orange,
+                color: warningColor,
               ),
           ],
         ),
@@ -987,6 +998,8 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final errColor = isDark ? Colors.redAccent : Colors.red[700]!;
     const expandKey = 'corrupted';
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
@@ -1000,17 +1013,17 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
           children: [
             _buildDetectorCardHeader(
               title: '🔴 CORRUPTED FRAMES DETECTED',
-              color: AppColors.statusError,
+              color: errColor,
               icon: Icons.broken_image_outlined,
               statusBadgeText: 'DETECTED',
             ),
             const SizedBox(height: 12),
             Text(
               'Occurrences: $count corrupted frame range(s) detected',
-              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+              style: TextStyle(fontSize: 13, color: errColor),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(height: 1),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               return Padding(
@@ -1027,7 +1040,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                         a.isCorruptedFrame
                             ? 'DECODE FAILURE'
                             : 'VISUAL ANOMALY'),
-                    const Divider(color: Colors.white10, height: 12),
+                    const Divider(height: 12),
                   ],
                 ),
               );
@@ -1037,7 +1050,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 expandKey: expandKey,
                 total: anomalies.length,
                 expanded: expanded,
-                color: AppColors.statusError,
+                color: errColor,
               ),
           ],
         ),
@@ -1062,6 +1075,8 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final errColor = isDark ? Colors.redAccent : Colors.red[700]!;
     const expandKey = 'modification';
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
@@ -1075,17 +1090,17 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
           children: [
             _buildDetectorCardHeader(
               title: '🔴 FRAME MODIFICATION DETECTED',
-              color: AppColors.statusError,
+              color: errColor,
               icon: Icons.edit_attributes_outlined,
               statusBadgeText: 'DETECTED',
             ),
             const SizedBox(height: 12),
             Text(
               'Candidates: $count modification candidate(s)',
-              style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+              style: TextStyle(fontSize: 13, color: errColor),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(height: 1),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               final double scoreVal = a.score > 0
@@ -1106,7 +1121,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                     if (scoreVal > 0)
                       _buildDetailRow('Region Difference',
                           scoreVal.toStringAsFixed(4)),
-                    const Divider(color: Colors.white10, height: 12),
+                    const Divider(height: 12),
                   ],
                 ),
               );
@@ -1116,7 +1131,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 expandKey: expandKey,
                 total: anomalies.length,
                 expanded: expanded,
-                color: AppColors.statusError,
+                color: errColor,
               ),
           ],
         ),
@@ -1141,12 +1156,14 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sceneColor = isDark ? Colors.tealAccent : Colors.teal[700]!;
     const expandKey = 'scene';
     final expanded = _isExpanded(expandKey);
     final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
 
     return ForensicCard(
-      borderColor: Colors.teal.withValues(alpha: 0.6),
+      borderColor: (isDark ? Colors.teal : Colors.teal[600]!).withValues(alpha: 0.6),
       child: Padding(
         padding: const EdgeInsets.all(18.0),
         child: Column(
@@ -1154,17 +1171,17 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
           children: [
             _buildDetectorCardHeader(
               title: '🎬 SCENE CHANGES DETECTED',
-              color: Colors.tealAccent,
+              color: sceneColor,
               icon: Icons.movie_creation_outlined,
               statusBadgeText: 'DETECTED',
             ),
             const SizedBox(height: 12),
             Text(
               'Scene Changes: $count scene cut(s)',
-              style: const TextStyle(fontSize: 13, color: Colors.tealAccent),
+              style: TextStyle(fontSize: 13, color: sceneColor),
             ),
             const SizedBox(height: 12),
-            const Divider(color: Colors.white10),
+            const Divider(height: 1),
             const SizedBox(height: 8),
             ...visibleAnomalies.map((a) {
               return Padding(
@@ -1178,7 +1195,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                     if (a.score > 0)
                       _buildDetailRow(
                           'Transition Score', a.score.toStringAsFixed(2)),
-                    const Divider(color: Colors.white10, height: 12),
+                    const Divider(height: 12),
                   ],
                 ),
               );
@@ -1188,7 +1205,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 expandKey: expandKey,
                 total: anomalies.length,
                 expanded: expanded,
-                color: Colors.tealAccent,
+                color: sceneColor,
               ),
           ],
         ),
@@ -1292,6 +1309,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     required String title,
     required String subtext,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ForensicCard(
       borderColor: AppColors.statusSuccess.withValues(alpha: 0.4),
       child: Padding(
@@ -1320,7 +1338,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                   const SizedBox(height: 2),
                   Text(
                     subtext,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -1333,6 +1354,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
   }
 
   Widget _buildUnavailableCard(String detectorName) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ForensicCard(
       borderColor: Colors.orange.withValues(alpha: 0.3),
       child: Padding(
@@ -1361,7 +1383,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                   const SizedBox(height: 2),
                   Text(
                     'Detector data was not returned by backend.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -1374,6 +1399,7 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
   }
 
   Widget _buildDetailRow(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(
@@ -1381,17 +1407,20 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: isDark ? Colors.white : const Color(0xFF111827),
               ),
               overflow: TextOverflow.ellipsis,
             ),

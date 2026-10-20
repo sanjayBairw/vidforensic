@@ -39,6 +39,8 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
   Widget build(BuildContext context) {
     final uploadState = ref.watch(uploadProvider);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     final file = uploadState.selectedFile;
 
@@ -61,12 +63,19 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.movie_creation_outlined,
-                      size: 64,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.movie_creation_outlined,
+                        size: 56,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     const Text(
                       'No Video Selected',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -74,7 +83,7 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Supported Formats: .mp4, .mov, .mkv, .avi, .webm',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
@@ -97,7 +106,7 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                     // Video Preview Player if available
                     if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) ...[
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
                         child: AspectRatio(
                           aspectRatio: _videoPlayerController!.value.aspectRatio,
                           child: Stack(
@@ -110,7 +119,7 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                                   _videoPlayerController!.value.isPlaying
                                       ? Icons.pause_circle_filled
                                       : Icons.play_circle_filled,
-                                  color: Colors.white70,
+                                  color: Colors.white.withValues(alpha: 0.85),
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -132,15 +141,21 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                         height: 160,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.black12,
-                          borderRadius: BorderRadius.circular(8),
+                          color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
+                          ),
                         ),
-                        child: const Column(
+                        child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.video_file, size: 48, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('Preview unavailable for this format', style: TextStyle(fontSize: 12)),
+                            Icon(Icons.video_file, size: 48, color: secondaryTextColor),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Preview unavailable for this format',
+                              style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                            ),
                           ],
                         ),
                       ),
@@ -150,17 +165,19 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
                     Text(
                       'FILE METADATA',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
+                        color: secondaryTextColor,
                         letterSpacing: 1,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildMetaRow('Filename:', uploadState.videoName ?? file.path.split(Platform.pathSeparator).last),
-                    _buildMetaRow('File Size:', Formatters.formatFileSize(file.lengthSync())),
-                    _buildMetaRow('Extension:', file.path.split('.').last.toUpperCase()),
-                    _buildMetaRow('Full Path:', file.path),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    _buildMetaRow('Filename:', uploadState.videoName ?? file.path.split(Platform.pathSeparator).last, isDark, secondaryTextColor),
+                    _buildMetaRow('File Size:', Formatters.formatFileSize(file.lengthSync()), isDark, secondaryTextColor),
+                    _buildMetaRow('Extension:', file.path.split('.').last.toUpperCase(), isDark, secondaryTextColor),
+                    _buildMetaRow('Full Path:', file.path, isDark, secondaryTextColor),
                   ],
                 ),
               ),
@@ -221,7 +238,7 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
+  Widget _buildMetaRow(String label, String value, bool isDark, Color secondaryColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -231,13 +248,21 @@ class _VideoSelectionScreenState extends ConsumerState<VideoSelectionScreen> {
             width: 90,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: secondaryColor,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'monospace',
+                color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+              ),
             ),
           ),
         ],

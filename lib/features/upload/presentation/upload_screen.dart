@@ -41,6 +41,9 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
     final theme = Theme.of(context);
     final percentage = (uploadState.progress * 100).toInt();
 
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Uploading Video'),
@@ -56,10 +59,17 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
               child: Column(
                 children: [
                   if (uploadState.error == null) ...[
-                    const Icon(
-                      Icons.cloud_upload_outlined,
-                      size: 64,
-                      color: AppColors.primaryAccent,
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.cloud_upload_outlined,
+                        size: 56,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Text(
@@ -70,13 +80,15 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Sending file to VidForensic engine...',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
                     ),
                     const SizedBox(height: 24),
                     LinearProgressIndicator(
                       value: uploadState.progress,
                       minHeight: 10,
                       borderRadius: BorderRadius.circular(5),
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -84,23 +96,34 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                       children: [
                         Text(
                           uploadState.progress >= 1.0 ? 'Upload complete!' : 'Uploading...',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: secondaryTextColor,
+                          ),
                         ),
                         Text(
                           '$percentage%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryAccent,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ],
                     ),
                   ] else ...[
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: AppColors.statusError,
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusError.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.error_outline,
+                        size: 56,
+                        color: AppColors.statusError,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text(

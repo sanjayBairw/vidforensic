@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/api_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/forensic_card.dart';
 import '../../video_selection/presentation/video_selection_screen.dart';
 import '../../history/presentation/history_screen.dart';
 import '../../comparison/presentation/comparison_screen.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../auth/presentation/login_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -47,52 +50,244 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _showApiSettingsDialog() {
-    final controller = TextEditingController(text: _currentApiUrl);
+  void _showThemeDialog() {
+    final currentMode = ref.read(themeModeProvider);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Backend API Configuration'),
+        title: const Row(
+          children: [
+            Icon(Icons.palette_outlined, color: AppColors.primaryAccent),
+            SizedBox(width: 10),
+            Text('App Appearance'),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Select or enter backend API base URL:',
-              style: TextStyle(fontSize: 13),
+            _buildThemeOption(
+              context: context,
+              title: 'Light Mode (Default)',
+              subtitle: 'Clean, bright forensic workstation',
+              icon: Icons.light_mode,
+              iconColor: Colors.orange,
+              mode: ThemeMode.light,
+              currentMode: currentMode,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'API Base URL',
-                hintText: 'https://vidforensicback.onrender.com',
-                border: OutlineInputBorder(),
-              ),
+            _buildThemeOption(
+              context: context,
+              title: 'Dark Mode',
+              subtitle: 'Deep slate low-light workstation',
+              icon: Icons.dark_mode,
+              iconColor: Colors.indigo,
+              mode: ThemeMode.dark,
+              currentMode: currentMode,
             ),
-            const SizedBox(height: 16),
-            const Text('Presets:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                ActionChip(
-                  label: const Text('Render Cloud (Default)'),
-                  onPressed: () => controller.text = ApiConstants.productionUrl,
-                ),
-                ActionChip(
-                  label: const Text('Localhost (8000)'),
-                  onPressed: () => controller.text = ApiConstants.localhostUrl,
-                ),
-                ActionChip(
-                  label: const Text('Android / LAN'),
-                  onPressed: () => controller.text = ApiConstants.emulatorUrl,
-                ),
-              ],
+            _buildThemeOption(
+              context: context,
+              title: 'System Default',
+              subtitle: 'Matches your device system setting',
+              icon: Icons.settings_brightness,
+              iconColor: Colors.teal,
+              mode: ThemeMode.system,
+              currentMode: currentMode,
             ),
           ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required ThemeMode mode,
+    required ThemeMode currentMode,
+  }) {
+    final isSelected = mode == currentMode;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgColor = isSelected
+        ? (isDark ? const Color(0xFF1F2937) : const Color(0xFFEFF6FF))
+        : Colors.transparent;
+    final borderColor = isSelected
+        ? AppColors.primaryAccent
+        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0));
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: bgColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: borderColor, width: isSelected ? 1.5 : 1),
+        ),
+        child: ListTile(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          leading: Icon(icon, color: iconColor),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+          ),
+          trailing: isSelected
+              ? const Icon(Icons.check_circle, color: AppColors.primaryAccent, size: 20)
+              : null,
+          onTap: () {
+            ref.read(themeModeProvider.notifier).setThemeMode(mode);
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showApiSettingsDialog() {
+    final controller = TextEditingController(text: _currentApiUrl);
+    final currentTheme = ref.read(themeModeProvider);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('System Settings'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'THEME & APPEARANCE',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.8),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode, size: 16),
+                    label: Text('Light'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode, size: 16),
+                    label: Text('Dark'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.settings_brightness, size: 16),
+                    label: Text('Auto'),
+                  ),
+                ],
+                selected: {currentTheme},
+                onSelectionChanged: (newSelection) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(newSelection.first);
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text(
+                'BACKEND API ENDPOINT',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.8),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'API Base URL',
+                  hintText: 'https://vidforensicback.onrender.com',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('Presets:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ActionChip(
+                    label: const Text('Render Cloud (Default)'),
+                    onPressed: () => controller.text = ApiConstants.productionUrl,
+                  ),
+                  ActionChip(
+                    label: const Text('Localhost (8000)'),
+                    onPressed: () => controller.text = ApiConstants.localhostUrl,
+                  ),
+                  ActionChip(
+                    label: const Text('Android / LAN'),
+                    onPressed: () => controller.text = ApiConstants.emulatorUrl,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text(
+                'SUPABASE AUTHENTICATION',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.8),
+              ),
+              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final auth = ref.watch(authNotifierProvider);
+                  if (auth.isAuthenticated) {
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.verified, color: AppColors.statusSuccess),
+                      title: Text(
+                        auth.user?.email ?? 'Authenticated',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      subtitle: const Text('Logged in with Supabase', style: TextStyle(fontSize: 11)),
+                      trailing: TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ref.read(authNotifierProvider.notifier).signOut();
+                        },
+                        child: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
+                      ),
+                    );
+                  } else {
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.cloud_off, color: Colors.grey),
+                      title: const Text('Guest Mode (Not Signed In)', style: TextStyle(fontSize: 13)),
+                      subtitle: const Text('Sign in to sync audits to Supabase cloud', style: TextStyle(fontSize: 11)),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                        },
+                        child: const Text('Sign In'),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -120,9 +315,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _showAccountDialog() {
+    final authState = ref.read(authNotifierProvider);
+    final user = authState.user;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.verified_user, color: AppColors.primaryAccent),
+            SizedBox(width: 8),
+            Text('Investigator Account'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(
+                backgroundColor: AppColors.primaryAccent,
+                child: Icon(Icons.person, color: Colors.white),
+              ),
+              title: Text(
+                user?.email ?? 'Unknown User',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Supabase Authenticated',
+                style: TextStyle(
+                  color: AppColors.statusSuccess,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const Divider(),
+            const SizedBox(height: 6),
+            Text(
+              'INVESTIGATOR ID',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            SelectableText(
+              user?.id ?? 'N/A',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'AUTH PROVIDER',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Supabase Cloud (rsocwvpxvxgskdgpmice)',
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.logout, size: 16),
+            label: const Text('Sign Out'),
+            onPressed: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              Navigator.pop(context);
+              await ref.read(authNotifierProvider.notifier).signOut();
+              scaffoldMessenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Successfully signed out of Supabase.'),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -130,17 +423,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             const Icon(Icons.security, color: AppColors.primaryAccent),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'VidForensic',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Configure Backend URL',
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode_outlined,
+              color: isDark ? Colors.amber : AppColors.lightTextPrimary,
+            ),
+            tooltip: 'Appearance & Theme',
+            onPressed: _showThemeDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Settings & Theme',
             onPressed: _showApiSettingsDialog,
+          ),
+          IconButton(
+            icon: Icon(
+              authState.isAuthenticated ? Icons.account_circle : Icons.account_circle_outlined,
+              color: authState.isAuthenticated ? AppColors.primaryAccent : null,
+            ),
+            tooltip: authState.isAuthenticated
+                ? 'Investigator (${authState.user?.email})'
+                : 'Sign In (Supabase)',
+            onPressed: () {
+              if (authState.isAuthenticated) {
+                _showAccountDialog();
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              }
+            },
           ),
         ],
       ),
@@ -233,6 +556,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         height: 1.4,
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    // Supabase Authentication Status Strip
+                    if (authState.isAuthenticated) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.highlight(context),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.primaryAccent.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified, size: 16, color: AppColors.primaryAccent),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Investigator: ${authState.user?.email}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: _showAccountDialog,
+                              child: const Text(
+                                'Account',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border(context)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.cloud_queue, size: 16, color: AppColors.textSecondary(context)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Supabase Cloud: Guest Mode',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary(context)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                );
+                              },
+                              child: const Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -79,15 +79,17 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
 
     final isAnalyzing = state.status == 'queued' || state.status == 'processing';
     final isCompleted = state.status == 'completed' && state.results != null;
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.compare, color: AppColors.primaryAccent, size: 20),
-            SizedBox(width: 8),
-            Flexible(
+            Icon(Icons.compare, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+            const Flexible(
               child: Text(
                 'Video Comparison',
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -120,23 +122,23 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryAccent.withValues(alpha: 0.15),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Icon(Icons.difference, color: AppColors.primaryAccent, size: 22),
+                    child: Icon(Icons.difference, color: theme.colorScheme.primary, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'DUAL-VIDEO DIFFERENTIAL FORENSICS',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,
-                            color: AppColors.primaryAccent,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -144,7 +146,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                           'Upload Reference (Original) and Suspected videos to detect splices, excised frames, localized modifications, and difference heatmaps.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.75),
+                            color: secondaryTextColor,
                           ),
                         ),
                       ],
@@ -217,7 +219,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 2.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.tune, size: 18, color: AppColors.primaryAccent),
+                          Icon(Icons.tune, size: 18, color: theme.colorScheme.primary),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -233,7 +235,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Offset: ${state.timeOffset >= 0 ? "+" : ""}${state.timeOffset.toStringAsFixed(1)}s  •  Sample: ${state.sampleInterval}s',
-                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  style: TextStyle(fontSize: 11, color: secondaryTextColor),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -337,7 +339,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             if (isAnalyzing) ...[
               ForensicCard(
                 padding: const EdgeInsets.all(20),
-                borderColor: AppColors.primaryAccent.withValues(alpha: 0.5),
+                borderColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -357,11 +359,11 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                         ),
                         Text(
                           '${(state.progress * 100).toInt()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: AppColors.primaryAccent,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ],
@@ -369,15 +371,15 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                     const SizedBox(height: 14),
                     LinearProgressIndicator(
                       value: state.progress > 0.0 ? state.progress : null,
-                      backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryAccent),
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       state.message ?? 'Synchronizing video streams and extracting differential frame metrics...',
                       style: TextStyle(
                         fontSize: 12,
-                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                        color: secondaryTextColor,
                       ),
                     ),
                   ],
@@ -479,15 +481,15 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.gavel, color: Colors.grey, size: 16),
+                        Icon(Icons.gavel, color: secondaryTextColor, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'FORENSIC LIMITATIONS & LEGAL DISCLAIMER',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey,
+                              color: secondaryTextColor,
                               letterSpacing: 0.8,
                             ),
                             overflow: TextOverflow.ellipsis,

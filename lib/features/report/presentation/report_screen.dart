@@ -165,6 +165,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final resultsState = ref.watch(resultsProvider);
     final ForensicResults? res = resultsState.results;
     final ForensicSummary? summary = res?.summary;
@@ -188,9 +190,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       verdictTextColor = AppColors.statusError;
       verdictTitle = 'AI CONTENT CANDIDATE / FORENSIC REVIEW REQUIRED';
     } else if (totalAnomalies > 0) {
-      verdictBgColor = AppColors.statusWarning.withValues(alpha: 0.1);
-      verdictBorderColor = AppColors.statusWarning;
-      verdictTextColor = AppColors.statusWarning;
+      verdictBgColor = (isDark ? Colors.orange[400]! : Colors.orange[800]!).withValues(alpha: 0.12);
+      verdictBorderColor = isDark ? Colors.orange[400]! : Colors.orange[700]!;
+      verdictTextColor = isDark ? Colors.orange[300]! : Colors.orange[800]!;
       verdictTitle = 'ANOMALIES DETECTED / FORENSIC REVIEW REQUIRED';
     } else {
       verdictBgColor = AppColors.statusSuccess.withValues(alpha: 0.1);
@@ -205,7 +207,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         children: [
           ForensicCard(
             padding: const EdgeInsets.all(24),
-            borderColor: AppColors.primaryAccent.withValues(alpha: 0.3),
+            borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -214,13 +216,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryAccent.withValues(alpha: 0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.picture_as_pdf,
                       size: 48,
-                      color: AppColors.primaryAccent,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -235,12 +237,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 const SizedBox(height: 6),
                 Text(
                   'Video: $videoName',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: secondaryTextColor),
                   textAlign: TextAlign.center,
                 ),
                 SelectableText(
                   'Job ID: ${widget.jobId}',
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.grey),
+                  style: TextStyle(fontFamily: 'monospace', fontSize: 11, color: secondaryTextColor),
                   textAlign: TextAlign.center,
                 ),
 
@@ -270,12 +272,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.verified, size: 14, color: Colors.grey),
+                          Icon(Icons.verified, size: 14, color: secondaryTextColor),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               'Status: $statusStr  •  Report State: Ready',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 11, color: secondaryTextColor, fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                             ),
@@ -292,25 +294,27 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.lightSurface.withValues(alpha: 0.5),
+                    color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
+                    ),
                   ),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _buildMetricItem('Total Anomalies', '$totalAnomalies', AppColors.statusWarning)),
+                          Expanded(child: _buildMetricItem('Total Anomalies', '$totalAnomalies', isDark ? Colors.orange[300]! : Colors.orange[800]!, secondaryTextColor)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildMetricItem('AI Candidates', '$aiCount', Colors.indigo)),
+                          Expanded(child: _buildMetricItem('AI Candidates', '$aiCount', isDark ? Colors.indigo[300]! : Colors.indigo[700]!, secondaryTextColor)),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(child: _buildMetricItem('Modifications', '$modCount', Colors.purple)),
+                          Expanded(child: _buildMetricItem('Modifications', '$modCount', isDark ? Colors.purple[300]! : Colors.purple[700]!, secondaryTextColor)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildMetricItem('Missing Frames', '$missingCount', Colors.orange)),
+                          Expanded(child: _buildMetricItem('Missing Frames', '$missingCount', isDark ? Colors.orange[300]! : Colors.orange[800]!, secondaryTextColor)),
                         ],
                       ),
                     ],
@@ -319,10 +323,10 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
 
                 const SizedBox(height: 16),
 
-                const Text(
+                Text(
                   'The backend PDF engine synthesizes multi-detector findings, FFT spectral grids, temporal frame changes, container timestamps, and SHA-256 hashes into a formal multi-page forensic audit document.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+                  style: TextStyle(fontSize: 12, color: secondaryTextColor, height: 1.4),
                 ),
 
                 const SizedBox(height: 20),
@@ -398,7 +402,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         label: Text(_isDownloading ? 'Downloading...' : 'DOWNLOAD PDF'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: AppColors.primaryAccent),
+                          side: BorderSide(color: theme.colorScheme.primary),
                         ),
                         onPressed: _isDownloading ? null : _handleDownloadPdf,
                       ),
@@ -416,7 +420,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         label: Text(_isSharing ? 'Preparing...' : 'SHARE PDF'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: AppColors.primaryAccent),
+                          side: BorderSide(color: theme.colorScheme.primary),
                         ),
                         onPressed: _isSharing ? null : _handleSharePdf,
                       ),
@@ -431,7 +435,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     );
   }
 
-  Widget _buildMetricItem(String label, String value, Color color) {
+  Widget _buildMetricItem(String label, String value, Color color, Color secondaryColor) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -446,7 +450,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 10, color: secondaryColor, fontWeight: FontWeight.w600),
           textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,

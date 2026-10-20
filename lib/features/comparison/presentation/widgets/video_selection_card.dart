@@ -165,9 +165,14 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'MP4, AVI, MOV, MKV, WEBM (Max 100 MB)',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.brightness == Brightness.dark
+                            ? const Color(0xFF9CA3AF)
+                            : const Color(0xFF64748B),
+                      ),
                     ),
                   ],
                 ),
@@ -195,8 +200,8 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
                             iconSize: 42,
                             icon: Icon(
                               _controller!.value.isPlaying
-                                  ? Icons.pause_circle_filled
-                                  : Icons.play_circle_filled,
+                                    ? Icons.pause_circle_filled
+                                    : Icons.play_circle_filled,
                               color: Colors.white70,
                             ),
                             onPressed: () {
@@ -228,9 +233,9 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
             const SizedBox(height: 12),
 
             // Metadata Chips
-            _buildMetaRow('Filename:', widget.filename ?? widget.file!.path.split(Platform.pathSeparator).last),
-            _buildMetaRow('File Size:', Formatters.formatFileSize(widget.file!.lengthSync())),
-            _buildMetaRow('Format:', widget.file!.path.split('.').last.toUpperCase()),
+            _buildMetaRow(context, 'Filename:', widget.filename ?? widget.file!.path.split(Platform.pathSeparator).last),
+            _buildMetaRow(context, 'File Size:', Formatters.formatFileSize(widget.file!.lengthSync())),
+            _buildMetaRow(context, 'Format:', widget.file!.path.split('.').last.toUpperCase()),
 
             const SizedBox(height: 10),
             Row(
@@ -254,7 +259,9 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
+  Widget _buildMetaRow(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4.0),
       child: Row(
@@ -263,13 +270,17 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
             width: 75,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: secondaryTextColor),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+              style: TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

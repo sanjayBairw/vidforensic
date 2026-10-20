@@ -20,6 +20,8 @@ class EvidenceIntervalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     return ForensicCard(
       padding: const EdgeInsets.all(16),
@@ -32,7 +34,7 @@ class EvidenceIntervalsCard extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.photo_library_outlined, color: AppColors.primaryAccent, size: 18),
+                    Icon(Icons.photo_library_outlined, color: theme.colorScheme.primary, size: 18),
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
@@ -52,7 +54,7 @@ class EvidenceIntervalsCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${intervals.length} Items',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: secondaryTextColor),
               ),
             ],
           ),
@@ -73,7 +75,7 @@ class EvidenceIntervalsCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Both videos demonstrate high structural and perceptual continuity across all aligned frames.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                    style: TextStyle(fontSize: 11, color: secondaryTextColor),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -88,6 +90,8 @@ class EvidenceIntervalsCard extends StatelessWidget {
 
   Widget _buildIntervalItem(
       BuildContext context, SuspiciousInterval it, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
     final isSelected = it.intervalIndex == selectedIntervalIndex;
     final sevColor = it.severity == 'SIGNIFICANT'
         ? AppColors.errorRed
@@ -102,11 +106,13 @@ class EvidenceIntervalsCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.primaryAccent.withValues(alpha: 0.08)
-            : Colors.black12,
+            ? theme.colorScheme.primary.withValues(alpha: 0.08)
+            : (isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9)),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isSelected ? AppColors.primaryAccent : Colors.grey.withValues(alpha: 0.2),
+          color: isSelected
+              ? theme.colorScheme.primary
+              : (isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0)),
           width: isSelected ? 1.5 : 1.0,
         ),
       ),
@@ -141,8 +147,10 @@ class EvidenceIntervalsCard extends StatelessWidget {
                   icon: const Icon(Icons.play_arrow, size: 14),
                   label: const Text('Seek Player', style: TextStyle(fontSize: 11)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected ? AppColors.primaryAccent : Colors.grey[800],
-                    foregroundColor: Colors.white,
+                    backgroundColor: isSelected
+                        ? theme.colorScheme.primary
+                        : (isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0)),
+                    foregroundColor: isSelected || isDark ? Colors.white : const Color(0xFF111827),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     minimumSize: Size.zero,
                     visualDensity: VisualDensity.compact,
@@ -155,16 +163,17 @@ class EvidenceIntervalsCard extends StatelessWidget {
                   children: [
                     Text(
                       'Ref: ${it.startTimeA.toStringAsFixed(2)}s - ${it.endTimeA.toStringAsFixed(2)}s  |  Susp: ${it.startTimeB.toStringAsFixed(2)}s - ${it.endTimeB.toStringAsFixed(2)}s',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
+                        color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Min SSIM: ${it.minSsim.toStringAsFixed(3)}  •  Max Diff: ${it.maxDifference.toStringAsFixed(3)}  •  Duration: ${it.duration.toStringAsFixed(2)}s',
-                      style: TextStyle(fontSize: 10.5, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 10.5, color: secondaryTextColor),
                     ),
                   ],
                 );

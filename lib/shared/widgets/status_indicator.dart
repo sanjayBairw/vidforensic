@@ -16,14 +16,22 @@ class StatusIndicator extends StatelessWidget {
   });
 
   Widget _buildIcon(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (status) {
       case StageStatus.waiting:
-        return const Icon(Icons.circle_outlined, color: Colors.grey, size: 20);
+        return Icon(
+          Icons.circle_outlined,
+          color: isDark ? const Color(0xFF4B5563) : const Color(0xFF94A3B8),
+          size: 20,
+        );
       case StageStatus.processing:
-        return const SizedBox(
+        return SizedBox(
           width: 18,
           height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2.5),
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+          ),
         );
       case StageStatus.completed:
         return const Icon(Icons.check_circle, color: AppColors.statusSuccess, size: 20);
@@ -36,11 +44,11 @@ class StatusIndicator extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (status) {
       case StageStatus.waiting:
-        return isDark ? Colors.grey[500]! : Colors.grey[600]!;
+        return isDark ? const Color(0xFF6B7280) : const Color(0xFF64748B);
       case StageStatus.processing:
         return Theme.of(context).colorScheme.primary;
       case StageStatus.completed:
-        return isDark ? Colors.white : Colors.black87;
+        return isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827);
       case StageStatus.failed:
         return AppColors.statusError;
     }
@@ -48,6 +56,9 @@ class StatusIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -70,7 +81,7 @@ class StatusIndicator extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                 ],
               ],

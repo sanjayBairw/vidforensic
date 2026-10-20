@@ -39,24 +39,27 @@ class ForensicTimelineWidget extends StatelessWidget {
       }
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'FORENSIC TIMELINE MAP',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
-                color: Colors.grey,
+                color: secondaryTextColor,
               ),
             ),
             Text(
               '${anomalies.length} Event Marker(s)',
-              style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.grey),
+              style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: secondaryTextColor),
             ),
           ],
         ),
@@ -65,9 +68,11 @@ class ForensicTimelineWidget extends StatelessWidget {
           height: 64,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.15),
+            color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            border: Border.all(
+              color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
+            ),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -84,7 +89,7 @@ class ForensicTimelineWidget extends StatelessWidget {
                     height: 4,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.3),
+                        color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -92,11 +97,11 @@ class ForensicTimelineWidget extends StatelessWidget {
 
                   // Markers
                   if (groupedAnomalies.isEmpty)
-                    const Positioned.fill(
+                    Positioned.fill(
                       child: Center(
                         child: Text(
                           'No timeline events detected (Clean Stream)',
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                          style: TextStyle(fontSize: 11, color: secondaryTextColor),
                         ),
                       ),
                     )
@@ -166,8 +171,8 @@ class ForensicTimelineWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('0.00s', style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: Colors.grey)),
-            Text('${effectiveDuration.toStringAsFixed(2)}s', style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: Colors.grey)),
+            Text('0.00s', style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: secondaryTextColor)),
+            Text('${effectiveDuration.toStringAsFixed(2)}s', style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: secondaryTextColor)),
           ],
         ),
       ],

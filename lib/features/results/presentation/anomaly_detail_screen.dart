@@ -15,6 +15,8 @@ class AnomalyDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +65,11 @@ class AnomalyDetailScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     anomaly.evidence.isNotEmpty ? anomaly.evidence : 'Automated detector flagged anomaly candidate in frame sequence.',
-                    style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.9), height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? const Color(0xFFD1D5DB) : const Color(0xFF334155),
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
@@ -162,7 +168,7 @@ class AnomalyDetailScreen extends StatelessWidget {
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
-                color: Colors.grey[600],
+                color: secondaryTextColor,
               ),
             ),
             const SizedBox(height: 10),
@@ -170,14 +176,14 @@ class AnomalyDetailScreen extends StatelessWidget {
             ForensicCard(
               child: Column(
                 children: [
-                  _buildMetricRow('Detector Module:', anomaly.detector),
-                  _buildMetricRow('Finding Type:', anomaly.anomalyType),
-                  _buildMetricRow('Frame Range:', '${anomaly.frameStart} – ${anomaly.frameEnd}'),
-                  _buildMetricRow('Timestamp Start:', '${anomaly.timestampStart.toStringAsFixed(3)} s'),
-                  _buildMetricRow('Timestamp End:', '${anomaly.timestampEnd.toStringAsFixed(3)} s'),
-                  _buildMetricRow('Duration:', '${anomaly.duration.toStringAsFixed(3)} s'),
-                  _buildMetricRow('Detector Score:', anomaly.score.toStringAsFixed(4)),
-                  _buildMetricRow('Confidence Level:', anomaly.confidence.toUpperCase()),
+                  _buildMetricRow('Detector Module:', anomaly.detector, isDark, secondaryTextColor),
+                  _buildMetricRow('Finding Type:', anomaly.anomalyType, isDark, secondaryTextColor),
+                  _buildMetricRow('Frame Range:', '${anomaly.frameStart} – ${anomaly.frameEnd}', isDark, secondaryTextColor),
+                  _buildMetricRow('Timestamp Start:', '${anomaly.timestampStart.toStringAsFixed(3)} s', isDark, secondaryTextColor),
+                  _buildMetricRow('Timestamp End:', '${anomaly.timestampEnd.toStringAsFixed(3)} s', isDark, secondaryTextColor),
+                  _buildMetricRow('Duration:', '${anomaly.duration.toStringAsFixed(3)} s', isDark, secondaryTextColor),
+                  _buildMetricRow('Detector Score:', anomaly.score.toStringAsFixed(4), isDark, secondaryTextColor),
+                  _buildMetricRow('Confidence Level:', anomaly.confidence.toUpperCase(), isDark, secondaryTextColor),
 
                   // REQUIREMENT 7: MODIFICATION EVIDENCE DETAILS
                   if (anomaly.isModification) ...[
@@ -185,15 +191,21 @@ class AnomalyDetailScreen extends StatelessWidget {
                     _buildMetricRow(
                       'Entry Boundary:',
                       'Frame ${anomaly.frameBefore ?? (anomaly.frameStart > 0 ? anomaly.frameStart - 1 : 0)} → ${anomaly.frameStart}',
+                      isDark,
+                      secondaryTextColor,
                     ),
                     _buildMetricRow(
                       'Exit Boundary:',
                       'Frame ${anomaly.frameEnd} → ${anomaly.frameAfter ?? anomaly.frameEnd + 1}',
+                      isDark,
+                      secondaryTextColor,
                     ),
                     if (anomaly.regionDifference != null)
                       _buildMetricRow(
                         'Changed-Pixel Ratio:',
                         '${(anomaly.regionDifference! * 100).toStringAsFixed(2)}%',
+                        isDark,
+                        secondaryTextColor,
                       ),
                   ],
 
@@ -203,21 +215,27 @@ class AnomalyDetailScreen extends StatelessWidget {
                     _buildMetricRow(
                       'Timestamp Category:',
                       anomaly.isPtsGap ? 'PTS_GAP (Container Gap)' : 'VISUAL_DISCONTINUITY (Optical Flow Jump)',
+                      isDark,
+                      secondaryTextColor,
                     ),
                     _buildMetricRow(
                       'Container Timestamp Status:',
                       anomaly.isPtsGap ? 'Abnormal PTS Gap' : 'Normal Container Timestamps (No PTS Gap)',
+                      isDark,
+                      secondaryTextColor,
                     ),
                     _buildMetricRow(
                       'Estimated Missing Frames:',
                       anomaly.isVisualDiscontinuity ? '0 (Visual Jump Only)' : '${anomaly.estimatedMissing}',
+                      isDark,
+                      secondaryTextColor,
                     ),
                     if (anomaly.expectedInterval != null)
-                      _buildMetricRow('Expected Interval:', '${anomaly.expectedInterval!.toStringAsFixed(4)} s'),
+                      _buildMetricRow('Expected Interval:', '${anomaly.expectedInterval!.toStringAsFixed(4)} s', isDark, secondaryTextColor),
                     if (anomaly.actualInterval != null)
-                      _buildMetricRow('Actual Interval:', '${anomaly.actualInterval!.toStringAsFixed(4)} s'),
+                      _buildMetricRow('Actual Interval:', '${anomaly.actualInterval!.toStringAsFixed(4)} s', isDark, secondaryTextColor),
                     if (anomaly.gapRatio != null)
-                      _buildMetricRow('Gap Ratio:', '${anomaly.gapRatio!.toStringAsFixed(2)} x'),
+                      _buildMetricRow('Gap Ratio:', '${anomaly.gapRatio!.toStringAsFixed(2)} x', isDark, secondaryTextColor),
                   ],
                 ],
               ),
@@ -237,7 +255,7 @@ class AnomalyDetailScreen extends StatelessWidget {
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
-                  color: Colors.grey[600],
+                  color: secondaryTextColor,
                 ),
               ),
               const SizedBox(height: 10),
@@ -247,9 +265,9 @@ class AnomalyDetailScreen extends StatelessWidget {
                   runSpacing: 8,
                   children: anomaly.signals.entries.map((entry) {
                     return Chip(
-                      backgroundColor: AppColors.primaryAccent.withValues(alpha: 0.1),
-                      side: BorderSide(color: AppColors.primaryAccent.withValues(alpha: 0.3)),
-                      avatar: const Icon(Icons.analytics, size: 14, color: AppColors.primaryAccent),
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                      avatar: Icon(Icons.analytics, size: 14, color: theme.colorScheme.primary),
                       label: Text(
                         '${entry.key}: ${entry.value}',
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
@@ -268,7 +286,7 @@ class AnomalyDetailScreen extends StatelessWidget {
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
-                  color: Colors.grey[600],
+                  color: secondaryTextColor,
                 ),
               ),
               const SizedBox(height: 10),
@@ -283,7 +301,11 @@ class AnomalyDetailScreen extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           'Region Box: $reg',
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+                          ),
                         ),
                       ],
                     ),
@@ -301,6 +323,8 @@ class AnomalyDetailScreen extends StatelessWidget {
   Widget _buildEvidenceSnapshotsSection(BuildContext context, Anomaly anomaly) {
     final Map<String, String> imgs = anomaly.images;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     final Map<String, String> displayImages = {};
     if (imgs.isNotEmpty) {
@@ -324,12 +348,12 @@ class AnomalyDetailScreen extends StatelessWidget {
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
-                color: Colors.grey[600],
+                color: secondaryTextColor,
               ),
             ),
-            const Text(
+            Text(
               'Keyframes: BEFORE → START → END → AFTER',
-              style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 10, color: secondaryTextColor, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -367,9 +391,11 @@ class AnomalyDetailScreen extends StatelessWidget {
                         width: 130,
                         height: 85,
                         decoration: BoxDecoration(
-                          color: Colors.black12,
+                          color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
@@ -377,9 +403,9 @@ class AnomalyDetailScreen extends StatelessWidget {
                               ? Image.network(
                                   url,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _buildPlaceholderSnapshot(label),
+                                  errorBuilder: (_, _, _) => _buildPlaceholderSnapshot(label, isDark, secondaryTextColor),
                                 )
-                              : _buildPlaceholderSnapshot(label),
+                              : _buildPlaceholderSnapshot(label, isDark, secondaryTextColor),
                         ),
                       ),
                     ],
@@ -393,18 +419,18 @@ class AnomalyDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholderSnapshot(String label) {
+  Widget _buildPlaceholderSnapshot(String label, bool isDark, Color secondaryColor) {
     return Container(
-      color: AppColors.darkSurface.withValues(alpha: 0.05),
+      color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.image_outlined, size: 24, color: Colors.grey),
+            Icon(Icons.image_outlined, size: 24, color: secondaryColor),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: secondaryColor),
             ),
           ],
         ),
@@ -417,7 +443,7 @@ class AnomalyDetailScreen extends StatelessWidget {
     if (label.contains('START')) return AppColors.statusError;
     if (label.contains('END')) return Colors.orange;
     if (label.contains('AFTER')) return Colors.green;
-    return AppColors.primaryAccent;
+    return const Color(0xFF2563EB);
   }
 
   Color _getHeaderBorderColor(String type) {
@@ -427,10 +453,10 @@ class AnomalyDetailScreen extends StatelessWidget {
     if (t.contains('VISUAL_DISCONTINUITY')) return Colors.deepOrange;
     if (t.contains('VISUAL_ANOMALY')) return AppColors.statusError;
     if (t.contains('PTS_GAP')) return Colors.orange;
-    return AppColors.primaryAccent;
+    return const Color(0xFF2563EB);
   }
 
-  Widget _buildMetricRow(String label, String value) {
+  Widget _buildMetricRow(String label, String value, bool isDark, Color secondaryColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5.0),
       child: Row(
@@ -438,13 +464,18 @@ class AnomalyDetailScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(fontSize: 12, color: secondaryColor),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+                color: isDark ? const Color(0xFFF9FAFB) : const Color(0xFF111827),
+              ),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),

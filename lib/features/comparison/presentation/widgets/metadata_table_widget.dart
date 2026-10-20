@@ -19,6 +19,8 @@ class MetadataTableWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final secondaryTextColor = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF64748B);
 
     return ForensicCard(
       padding: const EdgeInsets.all(16),
@@ -27,7 +29,7 @@ class MetadataTableWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.compare_arrows, color: AppColors.primaryAccent, size: 18),
+              Icon(Icons.compare_arrows, color: theme.colorScheme.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -48,7 +50,7 @@ class MetadataTableWidget extends StatelessWidget {
           // Side-by-side Table
           Table(
             border: TableBorder.all(
-              color: Colors.grey.withValues(alpha: 0.25),
+              color: isDark ? const Color(0xFF374151) : const Color(0xFFE2E8F0),
               width: 0.5,
               borderRadius: BorderRadius.circular(4),
             ),
@@ -62,7 +64,7 @@ class MetadataTableWidget extends StatelessWidget {
               // Header
               TableRow(
                 decoration: BoxDecoration(
-                  color: Colors.black26,
+                  color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF1F5F9),
                 ),
                 children: [
                   _buildCell('Property', isHeader: true),
@@ -122,7 +124,7 @@ class MetadataTableWidget extends StatelessWidget {
                   _buildCell('File Size'),
                   _buildCell(Formatters.formatFileSize(videoA.fileSize)),
                   _buildCell(Formatters.formatFileSize(videoB.fileSize)),
-                  _buildStatusChip('${metadataComparison.sizeRatio}x', AppColors.primaryAccent),
+                  _buildStatusChip('${metadataComparison.sizeRatio}x', theme.colorScheme.primary),
                 ],
               ),
               // Codec & Container
@@ -133,7 +135,7 @@ class MetadataTableWidget extends StatelessWidget {
                   _buildCell('${videoB.container.toUpperCase()} (${videoB.codec})'),
                   _buildStatusChip(
                     videoA.container == videoB.container ? 'MATCH' : 'DIFFERENT',
-                    videoA.container == videoB.container ? AppColors.successGreen : Colors.grey,
+                    videoA.container == videoB.container ? AppColors.successGreen : secondaryTextColor,
                   ),
                 ],
               ),
