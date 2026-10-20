@@ -419,21 +419,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
         title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.security, color: AppColors.primaryAccent),
-            const SizedBox(width: 10),
-            Text(
-              'VidForensic',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            const Icon(Icons.security, color: AppColors.primaryAccent, size: 22),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'VidForensic',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                ),
               ),
             ),
           ],
         ),
         actions: [
           IconButton(
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             icon: Icon(
               isDark ? Icons.light_mode : Icons.dark_mode_outlined,
               color: isDark ? Colors.amber : AppColors.lightTextPrimary,
@@ -442,11 +453,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: _showThemeDialog,
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings & Theme',
             onPressed: _showApiSettingsDialog,
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             icon: Icon(
               authState.isAuthenticated ? Icons.account_circle : Icons.account_circle_outlined,
               color: authState.isAuthenticated ? AppColors.primaryAccent : null,
@@ -465,6 +482,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               }
             },
           ),
+          const SizedBox(width: 6),
         ],
       ),
       body: SingleChildScrollView(
