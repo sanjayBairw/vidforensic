@@ -14,6 +14,9 @@ void main() async {
     await Supabase.initialize(
       url: SupabaseConstants.supabaseUrl,
       publishableKey: SupabaseConstants.supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.implicit,
+      ),
     );
   } catch (e) {
     debugPrint('Supabase initialization notice: $e');
