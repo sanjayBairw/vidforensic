@@ -7,6 +7,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/forensic_card.dart';
 import '../../video_selection/presentation/video_selection_screen.dart';
 import '../../history/presentation/history_screen.dart';
+import '../../comparison/presentation/comparison_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -250,6 +251,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 12),
 
               AppButton(
+                label: 'Video Comparison Mode',
+                icon: Icons.compare_arrows,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ComparisonScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              AppButton(
                 label: 'Analysis History',
                 icon: Icons.history,
                 isSecondary: true,
@@ -305,6 +321,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 icon: Icons.picture_as_pdf_outlined,
                 title: 'PDF Forensic Reports',
                 subtitle: 'Generate publication-ready PDF audit reports with summary charts and hashes.',
+              ),
+              _buildFeatureItem(
+                context,
+                icon: Icons.compare_arrows,
+                title: 'Video Comparison Mode',
+                subtitle: 'Dual-video timeline alignment, synchronized playback, and frame-level difference heatmaps.',
               ),
 
               const SizedBox(height: 20),

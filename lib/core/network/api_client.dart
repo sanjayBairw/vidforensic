@@ -154,6 +154,93 @@ class ApiClient {
     }
   }
 
+  // -------------------------------------------------------------
+  // Video Comparison API Methods
+  // -------------------------------------------------------------
+
+  Future<Map<String, dynamic>> createComparison({
+    required File fileA,
+    required File fileB,
+    double timeOffset = 0.0,
+    double sampleInterval = 0.5,
+    int maxSamples = 200,
+    double similarityThreshold = 0.85,
+    required Function(int count, int total) onProgress,
+  }) async {
+    try {
+      final String nameA = fileA.path.split(Platform.pathSeparator).last;
+      final String nameB = fileB.path.split(Platform.pathSeparator).last;
+
+      final formData = FormData.fromMap({
+        'video_a': await MultipartFile.fromFile(fileA.path, filename: nameA),
+        'video_b': await MultipartFile.fromFile(fileB.path, filename: nameB),
+        'time_offset': timeOffset,
+        'sample_interval': sampleInterval,
+        'max_samples': maxSamples,
+        'similarity_threshold': similarityThreshold,
+      });
+
+      final response = await _dio.post(
+        ApiConstants.comparisons,
+        data: formData,
+        onSendProgress: onProgress,
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getComparisonStatus(String comparisonId) async {
+    try {
+      final response =
+          await _dio.get(ApiConstants.comparisonStatus(comparisonId));
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getComparisonResults(String comparisonId) async {
+    try {
+      final response =
+          await _dio.get(ApiConstants.comparisonResults(comparisonId));
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<String> downloadComparisonReport(
+      String comparisonId, String savePath) async {
+    try {
+      await _dio.download(
+        ApiConstants.comparisonReport(comparisonId),
+        savePath,
+        options: Options(
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          headers: {'Accept': 'application/pdf, */*'},
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      );
+      return savePath;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  String getEvidenceUrl(String comparisonId, String filename) {
+    final base = _dio.options.baseUrl.replaceAll(RegExp(r'/$'), '');
+    return '$base${ApiConstants.comparisonEvidence(comparisonId, filename)}';
+  }
+
+  String getVideoUrl(String comparisonId, String target) {
+    final base = _dio.options.baseUrl.replaceAll(RegExp(r'/$'), '');
+    return '$base${ApiConstants.comparisonVideo(comparisonId, target)}';
+  }
+
   ApiException _handleDioError(DioException error) {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
