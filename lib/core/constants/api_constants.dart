@@ -1,38 +1,36 @@
-import 'dart:io';
-
 class ApiConstants {
-  // ✅ Production — Render Cloud Backend
-  static const String productionUrl =
-      'https://vidforensicback.onrender.com/api/v1';
+  // Production Cloud Backend (Render)
+  static const String renderUrl = 'https://vidforensicback.onrender.com/api/v1';
 
-  // Development fallbacks
-  static const String localHostUrl = 'http://10.151.10.3:8000/api/v1';
-  static const String androidEmulatorUrl = 'http://10.151.10.3:8000/api/v1';
-
-  /// Set to true to use local dev server, false to use Render production
-  static const bool useLocalDev = true;
+  // Local / LAN Backend Endpoints
+  static const String localHostUrl = 'http://127.0.0.1:8000/api/v1';
+  static const String lanServerUrl = 'http://192.168.1.196:8000/api/v1';
 
   static String? _overrideBaseUrl;
 
   static String get localhostUrl => localHostUrl;
-  static String get emulatorUrl => androidEmulatorUrl;
+  static String get emulatorUrl => lanServerUrl;
+  static String get productionUrl => renderUrl;
 
-  static set baseUrl(String url) {
-    _overrideBaseUrl = url;
+  /// Helper to ensure the base URL always points cleanly to the API version route
+  static String formatBaseUrl(String url) {
+    var clean = url.trim().replaceAll(RegExp(r'/+$'), '');
+    if (!clean.endsWith('/api/v1')) {
+      clean = '$clean/api/v1';
+    }
+    return clean;
   }
 
-  // Dynamic Base URL selection
+  static set baseUrl(String url) {
+    _overrideBaseUrl = formatBaseUrl(url);
+  }
+
+  // Base URL selection (Render cloud URL by default for live deployment)
   static String get baseUrl {
     if (_overrideBaseUrl != null && _overrideBaseUrl!.isNotEmpty) {
       return _overrideBaseUrl!;
     }
-    // Use local dev only when flag is set
-    if (useLocalDev) {
-      if (Platform.isAndroid) return androidEmulatorUrl;
-      return localHostUrl;
-    }
-    // Default: Render production backend
-    return productionUrl;
+    return renderUrl;
   }
 
   // Endpoints
@@ -61,10 +59,8 @@ class ApiConstants {
       '/comparisons/$id/video/$target';
 
   // Timeouts & Config
-  static const Duration connectTimeout = Duration(
-    seconds: 60,
-  ); // longer for cold starts
-  static const Duration receiveTimeout = Duration(seconds: 120);
+  static const Duration connectTimeout = Duration(seconds: 60);
+  static const Duration receiveTimeout = Duration(seconds: 180);
   static const Duration sendTimeout = Duration(minutes: 10);
   static const Duration pollingInterval = Duration(seconds: 3);
 }

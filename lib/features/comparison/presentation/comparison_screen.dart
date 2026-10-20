@@ -83,10 +83,17 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.compare, color: AppColors.primaryAccent),
-            SizedBox(width: 10),
-            Text('Video Comparison Mode', style: TextStyle(fontWeight: FontWeight.bold)),
+            Icon(Icons.compare, color: AppColors.primaryAccent, size: 20),
+            SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Video Comparison',
+                style: TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -205,87 +212,104 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                     onTap: () {
                       setState(() => _showAdvancedSettings = !_showAdvancedSettings);
                     },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.tune, size: 18, color: AppColors.primaryAccent),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Alignment & Sampling Parameters',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.tune, size: 18, color: AppColors.primaryAccent),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Alignment & Sampling Parameters',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Offset: ${state.timeOffset >= 0 ? "+" : ""}${state.timeOffset.toStringAsFixed(1)}s  •  Sample: ${state.sampleInterval}s',
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              'Offset: ${state.timeOffset >= 0 ? "+" : ""}${state.timeOffset.toStringAsFixed(1)}s  |  Sample: ${state.sampleInterval}s',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              _showAdvancedSettings ? Icons.expand_less : Icons.expand_more,
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            _showAdvancedSettings ? Icons.expand_less : Icons.expand_more,
+                            size: 22,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
                   if (_showAdvancedSettings) ...[
                     const Divider(height: 20),
-                    // Time Offset Slider
-                    Row(
+                    // Time Offset Slider (Responsive stacked format)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: 120,
-                          child: Text('Time Offset:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Time Offset (Alignment):',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${state.timeOffset >= 0 ? "+" : ""}${state.timeOffset.toStringAsFixed(2)}s',
+                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
-                        Expanded(
-                          child: Slider(
-                            value: state.timeOffset,
-                            min: -5.0,
-                            max: 5.0,
-                            divisions: 100,
-                            label: '${state.timeOffset.toStringAsFixed(2)}s',
-                            onChanged: isAnalyzing ? null : notifier.setTimeOffset,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 60,
-                          child: Text(
-                            '${state.timeOffset >= 0 ? "+" : ""}${state.timeOffset.toStringAsFixed(2)}s',
-                            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                          ),
+                        Slider(
+                          value: state.timeOffset,
+                          min: -5.0,
+                          max: 5.0,
+                          divisions: 100,
+                          label: '${state.timeOffset.toStringAsFixed(2)}s',
+                          onChanged: isAnalyzing ? null : notifier.setTimeOffset,
                         ),
                       ],
                     ),
-                    // Sample Interval Slider
-                    Row(
+                    const SizedBox(height: 6),
+                    // Sample Interval Slider (Responsive stacked format)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(
-                          width: 120,
-                          child: Text('Sample Interval:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Sample Interval (Granularity):',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${state.sampleInterval.toStringAsFixed(1)}s',
+                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
-                        Expanded(
-                          child: Slider(
-                            value: state.sampleInterval,
-                            min: 0.2,
-                            max: 2.0,
-                            divisions: 18,
-                            label: '${state.sampleInterval.toStringAsFixed(1)}s',
-                            onChanged: isAnalyzing ? null : notifier.setSampleInterval,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 60,
-                          child: Text(
-                            '${state.sampleInterval.toStringAsFixed(1)}s',
-                            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                          ),
+                        Slider(
+                          value: state.sampleInterval,
+                          min: 0.2,
+                          max: 2.0,
+                          divisions: 18,
+                          label: '${state.sampleInterval.toStringAsFixed(1)}s',
+                          onChanged: isAnalyzing ? null : notifier.setSampleInterval,
                         ),
                       ],
                     ),
@@ -453,17 +477,20 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.gavel, color: Colors.grey, size: 16),
-                        SizedBox(width: 8),
-                        Text(
-                          'FORENSIC LIMITATIONS & LEGAL DISCLAIMER',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                            letterSpacing: 0.8,
+                        const Icon(Icons.gavel, color: Colors.grey, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'FORENSIC LIMITATIONS & LEGAL DISCLAIMER',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                              letterSpacing: 0.8,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

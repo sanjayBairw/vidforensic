@@ -137,6 +137,7 @@ class AiForensicResult {
     final String evidenceQuality =
         aiAnalysisMap['evidence_quality']?.toString() ??
         json['evidence_quality']?.toString() ??
+        (json['confidence'] is String ? json['confidence'].toString() : null) ??
         'UNKNOWN';
 
     // ============================================================

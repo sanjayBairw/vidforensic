@@ -36,7 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final apiClient = ref.read(apiClientProvider);
       final res = await apiClient.checkHealth();
       setState(() {
-        _isBackendOnline = res['status'] == 'healthy';
+        _isBackendOnline = res['status'] == 'healthy' || res['status'] == 'ok';
         _checkingHealth = false;
       });
     } catch (_) {
@@ -67,7 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               controller: controller,
               decoration: const InputDecoration(
                 labelText: 'API Base URL',
-                hintText: 'http://127.0.0.1:8000',
+                hintText: 'https://vidforensicback.onrender.com',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -79,11 +79,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               runSpacing: 6,
               children: [
                 ActionChip(
+                  label: const Text('Render Cloud (Default)'),
+                  onPressed: () => controller.text = ApiConstants.productionUrl,
+                ),
+                ActionChip(
                   label: const Text('Localhost (8000)'),
                   onPressed: () => controller.text = ApiConstants.localhostUrl,
                 ),
                 ActionChip(
-                  label: const Text('Android Emulator'),
+                  label: const Text('Android / LAN'),
                   onPressed: () => controller.text = ApiConstants.emulatorUrl,
                 ),
               ],
@@ -99,11 +103,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onPressed: () {
               final newUrl = controller.text.trim();
               if (newUrl.isNotEmpty) {
+                final formattedUrl = ApiConstants.formatBaseUrl(newUrl);
                 setState(() {
-                  _currentApiUrl = newUrl;
-                  ApiConstants.baseUrl = newUrl;
+                  _currentApiUrl = formattedUrl;
+                  ApiConstants.baseUrl = formattedUrl;
                 });
-                ref.read(apiClientProvider).updateBaseUrl(newUrl);
+                ref.read(apiClientProvider).updateBaseUrl(formattedUrl);
                 _checkBackendHealth();
               }
               Navigator.pop(context);

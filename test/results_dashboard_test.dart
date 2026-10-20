@@ -14,7 +14,10 @@ void main() {
         overrides: [
           resultsProvider.overrideWith((ref) {
             final notifier = ResultsNotifier(ref);
-            notifier.state = ResultsState(isLoading: true);
+            notifier.state = ResultsState(
+              jobId: 'job_proc_123',
+              isLoading: true,
+            );
             return notifier;
           }),
         ],
@@ -39,6 +42,7 @@ void main() {
           resultsProvider.overrideWith((ref) {
             final notifier = ResultsNotifier(ref);
             notifier.state = ResultsState(
+              jobId: 'job_fail_123',
               isLoading: false,
               error: 'Invalid video container format or unsupported codec.',
             );
@@ -122,6 +126,7 @@ void main() {
           resultsProvider.overrideWith((ref) {
             final notifier = ResultsNotifier(ref);
             notifier.state = ResultsState(
+              jobId: 'job_comp_123',
               isLoading: false,
               results: mockResults,
               evidenceItems: mockResults.anomalies,

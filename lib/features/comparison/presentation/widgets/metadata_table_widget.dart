@@ -29,13 +29,16 @@ class MetadataTableWidget extends StatelessWidget {
             children: [
               const Icon(Icons.compare_arrows, color: AppColors.primaryAccent, size: 18),
               const SizedBox(width: 8),
-              Text(
-                'METADATA AUDIT & DISCREPANCY ANALYSIS',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  letterSpacing: 0.8,
-                  color: theme.textTheme.bodyMedium?.color,
+              Expanded(
+                child: Text(
+                  'METADATA AUDIT & DISCREPANCY ANALYSIS',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 0.8,
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -150,13 +153,16 @@ class MetadataTableWidget extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: AppColors.warningOrange),
-                      SizedBox(width: 6),
-                      Text(
-                        'Observed Technical Discrepancies:',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.warningOrange),
+                      const Icon(Icons.info_outline, size: 16, color: AppColors.warningOrange),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          'Observed Technical Discrepancies:',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.warningOrange),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

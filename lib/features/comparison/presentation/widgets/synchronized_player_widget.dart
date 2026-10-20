@@ -222,50 +222,80 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Controls Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          // Header Controls (Responsive: stacked on mobile, inline on tablet/desktop)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 620;
+              final titleBar = Row(
                 children: [
-                  const Icon(Icons.sync_alt, color: AppColors.primaryAccent, size: 20),
+                  const Icon(Icons.sync_alt, color: AppColors.primaryAccent, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    'SYNCHRONIZED FORENSIC VIEWER',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      letterSpacing: 1,
-                      color: theme.textTheme.bodyMedium?.color,
+                  Expanded(
+                    child: Text(
+                      'SYNCHRONIZED FORENSIC VIEWER',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 0.8,
+                        color: theme.textTheme.bodyMedium?.color,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
-              ),
-              // View Mode Selector
-              SegmentedButton<ComparisonViewMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ComparisonViewMode.sideBySide,
-                    icon: Icon(Icons.view_column_outlined, size: 16),
-                    label: Text('Side-by-Side', style: TextStyle(fontSize: 11)),
+              );
+
+              final modeSelector = SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SegmentedButton<ComparisonViewMode>(
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  ButtonSegment(
-                    value: ComparisonViewMode.blendedOverlay,
-                    icon: Icon(Icons.layers_outlined, size: 16),
-                    label: Text('Blend Overlay', style: TextStyle(fontSize: 11)),
-                  ),
-                  ButtonSegment(
-                    value: ComparisonViewMode.differenceView,
-                    icon: Icon(Icons.gradient_outlined, size: 16),
-                    label: Text('Difference', style: TextStyle(fontSize: 11)),
-                  ),
-                ],
-                selected: {_viewMode},
-                onSelectionChanged: (set) {
-                  setState(() => _viewMode = set.first);
-                },
-              ),
-            ],
+                  segments: const [
+                    ButtonSegment(
+                      value: ComparisonViewMode.sideBySide,
+                      icon: Icon(Icons.view_column_outlined, size: 14),
+                      label: Text('Side-by-Side', style: TextStyle(fontSize: 10.5)),
+                    ),
+                    ButtonSegment(
+                      value: ComparisonViewMode.blendedOverlay,
+                      icon: Icon(Icons.layers_outlined, size: 14),
+                      label: Text('Blend', style: TextStyle(fontSize: 10.5)),
+                    ),
+                    ButtonSegment(
+                      value: ComparisonViewMode.differenceView,
+                      icon: Icon(Icons.gradient_outlined, size: 14),
+                      label: Text('Difference', style: TextStyle(fontSize: 10.5)),
+                    ),
+                  ],
+                  selected: {_viewMode},
+                  onSelectionChanged: (set) {
+                    setState(() => _viewMode = set.first);
+                  },
+                ),
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    titleBar,
+                    const SizedBox(height: 10),
+                    Center(child: modeSelector),
+                  ],
+                );
+              } else {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: titleBar),
+                    const SizedBox(width: 12),
+                    modeSelector,
+                  ],
+                );
+              }
+            },
           ),
           const SizedBox(height: 12),
 
@@ -338,15 +368,16 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
             ),
           ],
 
-          // Playback Control Bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Timestamp display
-              Row(
+          // Playback Control Bar (Responsive: stacked on mobile, inline on wide screens)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 540;
+
+              final timestampWidget = Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.secondaryCyan.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -363,7 +394,7 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                   ),
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.warningOrange.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
@@ -384,19 +415,19 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
-              ),
+              );
 
-              // Player buttons
-              Row(
+              final playerButtons = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.skip_previous, size: 20),
                     tooltip: 'Step Backward (1 frame)',
                     onPressed: () => _stepFrame(-1),
+                    visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
-                    iconSize: 36,
+                    iconSize: 34,
                     icon: Icon(
                       _isPlaying
                           ? Icons.pause_circle_filled
@@ -409,12 +440,13 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                     icon: const Icon(Icons.skip_next, size: 20),
                     tooltip: 'Step Forward (1 frame)',
                     onPressed: () => _stepFrame(1),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
-              ),
+              );
 
-              // Speed & Zoom controls
-              Row(
+              final speedAndZoom = Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Playback speed
                   PopupMenuButton<double>(
@@ -427,7 +459,7 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                       const PopupMenuItem(value: 2.0, child: Text('2.0x')),
                     ],
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.withValues(alpha: 0.4)),
                         borderRadius: BorderRadius.circular(4),
@@ -438,7 +470,7 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
 
                   // Zoom toggle
                   IconButton(
@@ -447,6 +479,7 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                       size: 20,
                     ),
                     tooltip: _zoomScale > 1.0 ? 'Reset Zoom' : 'Zoom In (1.5x)',
+                    visualDensity: VisualDensity.compact,
                     onPressed: () {
                       setState(() {
                         _zoomScale = _zoomScale > 1.0 ? 1.0 : 1.5;
@@ -454,8 +487,36 @@ class _SynchronizedPlayerWidgetState extends State<SynchronizedPlayerWidget> {
                     },
                   ),
                 ],
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: timestampWidget,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        speedAndZoom,
+                        playerButtons,
+                      ],
+                    ),
+                  ],
+                );
+              } else {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    timestampWidget,
+                    playerButtons,
+                    speedAndZoom,
+                  ],
+                );
+              }
+            },
           ),
 
           // Suspicious Interval Anomaly Alert Banner when playing through an anomalous point

@@ -52,12 +52,15 @@ class TimelineIntervalsWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                '${intervals.length} Discrepanc${intervals.length == 1 ? "y" : "ies"} Detected',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: intervals.isNotEmpty ? AppColors.warningOrange : AppColors.successGreen,
+              Flexible(
+                child: Text(
+                  '${intervals.length} Discrepanc${intervals.length == 1 ? "y" : "ies"} Detected',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: intervals.isNotEmpty ? AppColors.warningOrange : AppColors.successGreen,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

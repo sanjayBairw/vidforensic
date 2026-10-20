@@ -29,21 +29,27 @@ class EvidenceIntervalsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.photo_library_outlined, color: AppColors.primaryAccent, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'SUSPICIOUS INTERVALS & EVIDENCE PLATES',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      letterSpacing: 0.8,
-                      color: theme.textTheme.bodyMedium?.color,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.photo_library_outlined, color: AppColors.primaryAccent, size: 18),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'SUSPICIOUS INTERVALS & EVIDENCE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.8,
+                          color: theme.textTheme.bodyMedium?.color,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '${intervals.length} Items',
                 style: const TextStyle(fontSize: 11, color: Colors.grey),
@@ -107,12 +113,14 @@ class EvidenceIntervalsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Interval Header Row
+          // Interval Header (Responsive: stacked on mobile, inline on tablet/desktop)
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 480;
+
+                final badge = Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: sevColor.withValues(alpha: 0.2),
@@ -127,29 +135,9 @@ class EvidenceIntervalsCard extends StatelessWidget {
                       color: sevColor,
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ref: ${it.startTimeA.toStringAsFixed(2)}s - ${it.endTimeA.toStringAsFixed(2)}s  |  Susp: ${it.startTimeB.toStringAsFixed(2)}s - ${it.endTimeB.toStringAsFixed(2)}s',
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Min SSIM: ${it.minSsim.toStringAsFixed(3)}  •  Max Diff: ${it.maxDifference.toStringAsFixed(3)}  •  Duration: ${it.duration.toStringAsFixed(2)}s',
-                        style: TextStyle(fontSize: 10.5, color: Colors.grey[500]),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton.icon(
+                );
+
+                final seekBtn = ElevatedButton.icon(
                   icon: const Icon(Icons.play_arrow, size: 14),
                   label: const Text('Seek Player', style: TextStyle(fontSize: 11)),
                   style: ElevatedButton.styleFrom(
@@ -157,10 +145,57 @@ class EvidenceIntervalsCard extends StatelessWidget {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     minimumSize: Size.zero,
+                    visualDensity: VisualDensity.compact,
                   ),
                   onPressed: () => onSelectInterval(it),
-                ),
-              ],
+                );
+
+                final textDetails = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ref: ${it.startTimeA.toStringAsFixed(2)}s - ${it.endTimeA.toStringAsFixed(2)}s  |  Susp: ${it.startTimeB.toStringAsFixed(2)}s - ${it.endTimeB.toStringAsFixed(2)}s',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Min SSIM: ${it.minSsim.toStringAsFixed(3)}  •  Max Diff: ${it.maxDifference.toStringAsFixed(3)}  •  Duration: ${it.duration.toStringAsFixed(2)}s',
+                      style: TextStyle(fontSize: 10.5, color: Colors.grey[500]),
+                    ),
+                  ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          badge,
+                          seekBtn,
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      textDetails,
+                    ],
+                  );
+                } else {
+                  return Row(
+                    children: [
+                      badge,
+                      const SizedBox(width: 10),
+                      Expanded(child: textDetails),
+                      const SizedBox(width: 10),
+                      seekBtn,
+                    ],
+                  );
+                }
+              },
             ),
           ),
 

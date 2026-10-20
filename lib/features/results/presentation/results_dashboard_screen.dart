@@ -56,6 +56,30 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
+      final currentState = ref.read(resultsProvider);
+      if (currentState.jobId == widget.jobId &&
+          (currentState.isLoading ||
+              currentState.results != null ||
+              currentState.error != null)) {
+        if (currentState.results != null && !_historyAdded) {
+          _historyAdded = true;
+          final res = currentState.results!;
+          ref.read(historyProvider.notifier).addItem(
+                HistoryItem(
+                  jobId: widget.jobId,
+                  filename: res.videoName,
+                  date: res.createdAt.isNotEmpty
+                      ? res.createdAt
+                      : DateTime.now().toIso8601String().split('T').first,
+                  status: res.status,
+                  anomalyCount:
+                      res.summary?.totalAnomalies ?? res.anomalies.length,
+                ),
+              );
+        }
+        return;
+      }
+
       debugPrint('');
       debugPrint('==============================================');
       debugPrint('DASHBOARD: FETCHING CURRENT JOB');
