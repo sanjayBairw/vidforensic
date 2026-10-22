@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_provider.dart';
+import '../../../core/network/api_exceptions.dart';
 
 class AnalysisState {
   final String? jobId;
@@ -45,11 +46,13 @@ class AnalysisState {
 class AnalysisNotifier extends StateNotifier<AnalysisState> {
   final Ref ref;
   Timer? _pollingTimer;
+  int _consecutiveNotFoundCount = 0;
 
   AnalysisNotifier(this.ref) : super(AnalysisState());
 
   void initJob(String jobId) {
     _pollingTimer?.cancel();
+    _consecutiveNotFoundCount = 0;
     state = AnalysisState(
       jobId: jobId,
       status: 'queued',
@@ -77,6 +80,7 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
 
   void _startPolling(String jobId) {
     _pollingTimer?.cancel();
+    _consecutiveNotFoundCount = 0;
     _pollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
       await pollStatus(jobId);
     });
@@ -86,6 +90,7 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
     try {
       final apiClient = ref.read(apiClientProvider);
       final res = await apiClient.getStatus(jobId);
+      _consecutiveNotFoundCount = 0;
 
       final statusStr = (res['status'] as String? ?? 'processing').toLowerCase();
       final num? progNum = res['progress'] as num?;
@@ -121,6 +126,19 @@ class AnalysisNotifier extends StateNotifier<AnalysisState> {
           progress: progress,
           currentStage: stage,
           rawStatus: res,
+        );
+      }
+    } on JobNotFoundException {
+      _consecutiveNotFoundCount++;
+      if (_consecutiveNotFoundCount >= 3) {
+        _pollingTimer?.cancel();
+        state = state.copyWith(
+          status: 'failed',
+          error: 'Analysis job not found on server (container restarted or job expired). Please upload the video again.',
+        );
+      } else {
+        state = state.copyWith(
+          message: 'Connecting to backend status service ($_consecutiveNotFoundCount/3)...',
         );
       }
     } catch (e) {
