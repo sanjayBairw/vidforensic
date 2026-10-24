@@ -90,6 +90,9 @@ class Anomaly {
   bool get isModification => type == 'MODIFICATION_CANDIDATE' || type == 'MODIFICATION';
   bool get isVisualAnomaly => type == 'VISUAL_ANOMALY_CANDIDATE';
   bool get isCorruptedFrame => type == 'CORRUPTED_FRAME';
+  bool get isCopyMove => type == 'COPY_MOVE_CANDIDATE';
+  bool get isSplice => type == 'SPLICE_CANDIDATE';
+  bool get isForgeryCandidate => isCopyMove || isSplice;
 
   String get evidenceQuality => rawJson['evidence_quality']?.toString().toUpperCase() ?? confidence;
   String get naturalArtifactRisk => rawJson['natural_artifact_risk']?.toString().toUpperCase() ?? rawJson['contextual_risk']?.toString().toUpperCase() ?? 'LOW';
@@ -199,6 +202,10 @@ class Anomaly {
         return 'Duplicate Frame Range';
       case 'SCENE_CHANGE':
         return 'Scene Change Cut';
+      case 'COPY_MOVE_CANDIDATE':
+        return 'Copy-Move Forgery Candidate';
+      case 'SPLICE_CANDIDATE':
+        return 'Splice Boundary Candidate';
       default:
         return type.replaceAll('_', ' ');
     }

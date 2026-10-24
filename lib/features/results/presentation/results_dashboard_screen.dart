@@ -440,6 +440,12 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final sceneAnomalies = anomalies
         .where((a) => a.type.toUpperCase().contains('SCENE'))
         .toList();
+    final copyMoveAnomalies = anomalies
+        .where((a) => a.isCopyMove || a.type.toUpperCase().contains('COPY_MOVE'))
+        .toList();
+    final spliceAnomalies = anomalies
+        .where((a) => a.isSplice || a.type.toUpperCase().contains('SPLICE'))
+        .toList();
 
     // Counts
     final int freezeCount = summary?.freezeFrames ?? freezeAnomalies.length;
@@ -448,6 +454,8 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final int corruptedCount = summary?.corruptedFrames ?? corruptedAnomalies.length;
     final int modCount = summary?.modificationCandidates ?? modAnomalies.length;
     final int sceneCount = summary?.sceneChanges ?? sceneAnomalies.length;
+    final int copyMoveCount = summary?.copyMoveCandidates ?? copyMoveAnomalies.length;
+    final int spliceCount = summary?.spliceCandidates ?? spliceAnomalies.length;
 
     // Availability checks
     final bool freezeAvailable = _isDetectorAvailable(res, 'freeze_results');
@@ -456,6 +464,8 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final bool corruptedAvailable = _isDetectorAvailable(res, 'corrupted_results');
     final bool modAvailable = _isDetectorAvailable(res, 'modification_results');
     final bool sceneAvailable = _isDetectorAvailable(res, 'scene_results');
+    final bool copyMoveAvailable = _isDetectorAvailable(res, 'copy_move_results');
+    final bool spliceAvailable = _isDetectorAvailable(res, 'splicing_results');
 
     // ============================================================
     // DEBUG LOGGING
@@ -642,6 +652,26 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
             isAvailable: sceneAvailable,
             count: sceneCount,
             anomalies: sceneAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 7. COPY-MOVE FORGERY DETECTOR CARD
+          // ------------------------------------------------------
+          _buildCopyMoveDetectorCard(
+            isAvailable: copyMoveAvailable,
+            count: copyMoveCount,
+            anomalies: copyMoveAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 8. SPLICING DETECTOR CARD
+          // ------------------------------------------------------
+          _buildSpliceDetectorCard(
+            isAvailable: spliceAvailable,
+            count: spliceCount,
+            anomalies: spliceAnomalies,
           ),
           const SizedBox(height: 24),
 
@@ -1206,6 +1236,157 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 total: anomalies.length,
                 expanded: expanded,
                 color: sceneColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 7. COPY-MOVE FORGERY DETECTOR CARD
+  Widget _buildCopyMoveDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('COPY-MOVE DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO COPY-MOVE TAMPERING DETECTED',
+        subtext: 'No intra-frame cloned or repeated regions detected.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cmColor = isDark ? Colors.purpleAccent : Colors.purple[700]!;
+    const expandKey = 'copy_move';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: (isDark ? Colors.purple : Colors.purple[600]!).withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '📋 COPY-MOVE TAMPERING CANDIDATES',
+              color: cmColor,
+              icon: Icons.content_copy_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Cloned Region Candidates: $count frame(s)',
+              style: TextStyle(fontSize: 13, color: cmColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              final pairCount = a.rawJson['pair_count'] ?? a.regions.length;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Frame', '${a.frameStart}'),
+                    _buildDetailRow('Timestamp', '${a.timestampStart.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Confidence', a.confidence),
+                    if (pairCount != null && pairCount > 0)
+                      _buildDetailRow('Matched Pairs', '$pairCount'),
+                    if (a.score > 0)
+                      _buildDetailRow('Tampering Score', a.score.toStringAsFixed(2)),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: cmColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 8. SPLICING DETECTOR CARD
+  Widget _buildSpliceDetectorCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('SPLICING DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO SPLICING DETECTED',
+        subtext: 'No inter-shot noise or lighting splice cuts detected.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final spColor = isDark ? Colors.amberAccent : Colors.amber[800]!;
+    const expandKey = 'splice';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: (isDark ? Colors.amber : Colors.amber[700]!).withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '✂️ VIDEO SPLICING CANDIDATES',
+              color: spColor,
+              icon: Icons.content_cut_outlined,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Splice Boundary Candidates: $count boundary cut(s)',
+              style: TextStyle(fontSize: 13, color: spColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Boundary Frame', '${a.frameStart} → ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp', '${a.timestampStart.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Confidence', a.confidence),
+                    if (a.signals.isNotEmpty)
+                      _buildDetailRow('Forensic Signals', a.signals.keys.join(', ')),
+                    if (a.score > 0)
+                      _buildDetailRow('Splice Score', a.score.toStringAsFixed(2)),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: spColor,
               ),
           ],
         ),

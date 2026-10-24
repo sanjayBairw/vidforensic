@@ -74,6 +74,8 @@ class ForensicSummary {
   final int modificationCandidates;
   final int sceneChanges;
   final int aiContentCandidates;
+  final int copyMoveCandidates;
+  final int spliceCandidates;
 
   ForensicSummary({
     required this.totalAnomalies,
@@ -87,6 +89,8 @@ class ForensicSummary {
     required this.modificationCandidates,
     required this.sceneChanges,
     required this.aiContentCandidates,
+    this.copyMoveCandidates = 0,
+    this.spliceCandidates = 0,
   });
 
   factory ForensicSummary.fromJson(
@@ -148,6 +152,16 @@ class ForensicSummary {
         (summaryMap['ai_content_candidates'] as num?)?.toInt() ??
         0;
 
+    int copyMove =
+        (summaryMap['COPY_MOVE_CANDIDATE'] as num?)?.toInt() ??
+        (summaryMap['copy_move_candidates'] as num?)?.toInt() ??
+        0;
+
+    int splice =
+        (summaryMap['SPLICE_CANDIDATE'] as num?)?.toInt() ??
+        (summaryMap['splice_candidates'] as num?)?.toInt() ??
+        0;
+
     // Compute dynamically from anomalies list if anomalies list is provided.
     if (anomalies != null && anomalies.isNotEmpty) {
       if (total == 0) {
@@ -163,6 +177,8 @@ class ForensicSummary {
       int calcFreeze = 0;
       int calcDup = 0;
       int calcScene = 0;
+      int calcCopyMove = 0;
+      int calcSplice = 0;
 
       for (final a in anomalies) {
         if (a.isPtsGap) {
@@ -177,6 +193,10 @@ class ForensicSummary {
           calcAi++;
         } else if (a.isModification) {
           calcMod++;
+        } else if (a.isCopyMove) {
+          calcCopyMove++;
+        } else if (a.isSplice) {
+          calcSplice++;
         } else if (a.type.contains('FREEZE')) {
           calcFreeze++;
         } else if (a.type.contains('DUPLICATE')) {
@@ -222,6 +242,14 @@ class ForensicSummary {
         scene = calcScene;
       }
 
+      if (copyMove == 0) {
+        copyMove = calcCopyMove;
+      }
+
+      if (splice == 0) {
+        splice = calcSplice;
+      }
+
       missing =
           visDisc +
           ptsGaps +
@@ -250,6 +278,8 @@ class ForensicSummary {
       modificationCandidates: mod,
       sceneChanges: scene,
       aiContentCandidates: ai,
+      copyMoveCandidates: copyMove,
+      spliceCandidates: splice,
     );
   }
 
@@ -263,6 +293,8 @@ class ForensicSummary {
       'modification_candidates': modificationCandidates,
       'scene_changes': sceneChanges,
       'ai_content_candidates': aiContentCandidates,
+      'copy_move_candidates': copyMoveCandidates,
+      'splice_candidates': spliceCandidates,
     };
   }
 }
