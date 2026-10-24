@@ -224,6 +224,129 @@ void main() {
       expect(results.timelineSamples.length, 1);
       expect(results.limitations.first, 'Test limitation note.');
     });
+
+    test('Full ComparisonResults with correlated forgery detectors parsing', () {
+      final jsonWithForgeryCorrelations = {
+        'comparison_id': 'comp_forgery_001',
+        'generated_at': '2026-10-24T20:00:00Z',
+        'configuration': {'time_offset': 0.0, 'sample_interval': 0.5},
+        'summary': {
+          'overall_similarity_percentage': 72.0,
+          'verdict': 'MAJOR_DIVERGENCE_DETECTED',
+          'verdict_label': 'SIGNIFICANT FORENSIC DIVERGENCE / CONTENT MODIFICATION',
+          'severity': 'HIGH',
+          'total_samples_analyzed': 30,
+          'total_suspicious_intervals': 2,
+          'overlap_duration': 10.0,
+          'average_ssim': 0.72,
+          'average_mae': 0.12,
+          'average_phash_distance': 0.15,
+          'average_histogram_similarity': 0.88,
+        },
+        'video_a': {
+          'label': 'Reference Video (A)',
+          'filename': 'ref.mp4',
+          'file_size': 500000,
+          'sha256': 'hash_a',
+          'container': '.mp4',
+          'codec': 'H264',
+          'width': 1280,
+          'height': 720,
+          'aspect_ratio': '16:9',
+          'fps': 25.0,
+          'frame_count': 250,
+          'duration': 10.0,
+          'bitrate': '2000 kbps',
+          'audio_present': false,
+        },
+        'video_b': {
+          'label': 'Suspected Video (B)',
+          'filename': 'susp.mp4',
+          'file_size': 520000,
+          'sha256': 'hash_b',
+          'container': '.mp4',
+          'codec': 'H264',
+          'width': 1280,
+          'height': 720,
+          'aspect_ratio': '16:9',
+          'fps': 25.0,
+          'frame_count': 250,
+          'duration': 10.0,
+          'bitrate': '2100 kbps',
+          'audio_present': false,
+        },
+        'metadata_comparison': {
+          'resolution_match': true,
+          'fps_match': true,
+          'duration_match': true,
+          'duration_delta': 0.0,
+          'size_ratio': 1.04,
+          'total_discrepancies': 0,
+          'discrepancies': [],
+        },
+        'unmatched_intervals': [],
+        'suspicious_intervals': [
+          {
+            'interval_id': 'INT_01',
+            'interval_index': 1,
+            'start_time_a': 3.0,
+            'end_time_a': 4.5,
+            'start_time_b': 3.0,
+            'end_time_b': 4.5,
+            'duration': 1.5,
+            'sample_count': 3,
+            'min_ssim': 0.45,
+            'max_difference': 0.55,
+            'average_mae': 0.28,
+            'average_phash_distance': 0.32,
+            'severity': 'SIGNIFICANT',
+            'explanation': 'Content replacement detected in interval.',
+            'peak_timestamp_a': 3.5,
+            'peak_timestamp_b': 3.5,
+            'evidence_files': {'composite_plate': 'evidence_plate_01.jpg'},
+          }
+        ],
+        'timeline_samples': [],
+        'detector_correlations': {
+          'target': 'Suspected Video (B)',
+          'source_video': 'video_b',
+          'filename': 'susp.mp4',
+          'scene_cuts_detected': 1,
+          'splice_candidates_detected': 1,
+          'copy_move_candidates_detected': 1,
+          'copy_move_candidates': [
+            {
+              'frame': 45,
+              'timestamp': 1.8,
+              'match_count': 18,
+              'confidence': 'MEDIUM',
+              'source_video': 'video_b',
+            }
+          ],
+          'splice_candidates': [
+            {
+              'frame_before': 75,
+              'frame_after': 76,
+              'timestamp': 3.0,
+              'confidence': 'HIGH',
+              'source_video': 'video_b',
+            }
+          ],
+        },
+        'limitations': ['Forensic analysis is probabilistic.'],
+      };
+
+      final parsed = ComparisonResults.fromJson(jsonWithForgeryCorrelations);
+      expect(parsed.comparisonId, 'comp_forgery_001');
+      expect(parsed.summary.severity, 'HIGH');
+      expect(parsed.detectorCorrelations['source_video'], 'video_b');
+      expect(parsed.detectorCorrelations['copy_move_candidates_detected'], 1);
+      expect(parsed.detectorCorrelations['splice_candidates_detected'], 1);
+      final cmList = parsed.detectorCorrelations['copy_move_candidates'] as List;
+      expect(cmList.first['source_video'], 'video_b');
+      final spList = parsed.detectorCorrelations['splice_candidates'] as List;
+      expect(spList.first['source_video'], 'video_b');
+    });
   });
 
   group('ComparisonState & Notifier Unit Tests', () {
