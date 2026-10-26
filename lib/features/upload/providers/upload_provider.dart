@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../core/network/api_exceptions.dart';
 import '../../../core/network/api_provider.dart';
 
 class UploadState {
@@ -106,9 +107,10 @@ class UploadNotifier extends StateNotifier<UploadState> {
 
       return jobId;
     } catch (e) {
+      final message = e is ApiException ? e.message : e.toString();
       state = state.copyWith(
         isUploading: false,
-        error: e.toString(),
+        error: message,
       );
       return null;
     }

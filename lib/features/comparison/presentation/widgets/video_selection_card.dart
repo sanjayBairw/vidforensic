@@ -166,7 +166,7 @@ class _VideoSelectionCardState extends State<VideoSelectionCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'MP4, AVI, MOV, MKV, WEBM (Max 100 MB)',
+                      'MP4, AVI, MOV, MKV, WEBM (Max 500 MB)',
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.brightness == Brightness.dark

@@ -153,7 +153,7 @@ class _UploadScreenState extends ConsumerState<UploadScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: AppButton(
-                            label: 'Retry Upload',
+                            label: 'Retry',
                             icon: Icons.refresh,
                             onPressed: _startUpload,
                           ),

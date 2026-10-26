@@ -269,6 +269,11 @@ class ApiClient {
       return ServerException(message, statusCode: statusCode);
     }
 
-    return ApiException('An unexpected network error occurred.');
+    final detail = error.message ?? error.error?.toString();
+    if (detail != null && detail.isNotEmpty) {
+      return NetworkException('Network error: $detail');
+    }
+
+    return ApiException('Network connection failed or server is restarting.');
   }
 }
