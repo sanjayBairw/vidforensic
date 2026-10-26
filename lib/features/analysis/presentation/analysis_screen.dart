@@ -36,29 +36,46 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     'Corrupted Frame Detection',
     'Modification Detection',
     'Scene Detection',
+    'Copy-Move Forgery Detection',
+    'Splicing Detection',
     'AI Forensic Detection',
     'Evidence Fusion',
     'Report Generation',
   ];
 
-  StageStatus _getStageStatus(int index, String overallStatus, double progress) {
+  int _parseActiveStageIndex(String? stageStr, double progress) {
+    if (stageStr != null && stageStr.isNotEmpty) {
+      final match = RegExp(r'\[(\d+)/12\]').firstMatch(stageStr);
+      if (match != null) {
+        final parsed = int.tryParse(match.group(1) ?? '');
+        if (parsed != null && parsed >= 1 && parsed <= _stages.length) {
+          return parsed - 1;
+        }
+      }
+      final lower = stageStr.toLowerCase();
+      for (int i = 0; i < _stages.length; i++) {
+        if (lower.contains(_stages[i].toLowerCase())) {
+          return i;
+        }
+      }
+    }
+    return (progress * _stages.length).floor().clamp(0, _stages.length - 1);
+  }
+
+  StageStatus _getStageStatus(int index, String overallStatus, double progress, String? currentStage) {
     if (overallStatus == 'completed') {
       return StageStatus.completed;
     }
+    final activeIdx = _parseActiveStageIndex(currentStage, progress);
     if (overallStatus == 'failed') {
-      final activeIdx = (progress * _stages.length).floor();
       if (index < activeIdx) return StageStatus.completed;
       if (index == activeIdx) return StageStatus.failed;
       return StageStatus.waiting;
     }
 
-    // Processing status based on progress ratio (0.0 to 1.0)
-    final double stageEndThreshold = (index + 1) / _stages.length;
-    final double stageStartThreshold = index / _stages.length;
-
-    if (progress >= stageEndThreshold) {
+    if (index < activeIdx) {
       return StageStatus.completed;
-    } else if (progress > stageStartThreshold || (index == 0 && progress > 0)) {
+    } else if (index == activeIdx) {
       return StageStatus.processing;
     } else {
       return StageStatus.waiting;
@@ -167,7 +184,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               child: Column(
                 children: List.generate(_stages.length, (index) {
                   final stageName = _stages[index];
-                  final status = _getStageStatus(index, analysisState.status, analysisState.progress);
+                  final status = _getStageStatus(index, analysisState.status, analysisState.progress, analysisState.currentStage);
                   return StatusIndicator(
                     title: stageName,
                     status: status,
