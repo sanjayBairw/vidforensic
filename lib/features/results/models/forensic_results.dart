@@ -76,6 +76,11 @@ class ForensicSummary {
   final int aiContentCandidates;
   final int copyMoveCandidates;
   final int spliceCandidates;
+  final int objectManipulationCandidates;
+  final int compressionAnomalies;
+  final int metadataInconsistencies;
+  final int audioSyncAnomalies;
+  final int deepfakeFaceCandidates;
 
   ForensicSummary({
     required this.totalAnomalies,
@@ -91,6 +96,11 @@ class ForensicSummary {
     required this.aiContentCandidates,
     this.copyMoveCandidates = 0,
     this.spliceCandidates = 0,
+    this.objectManipulationCandidates = 0,
+    this.compressionAnomalies = 0,
+    this.metadataInconsistencies = 0,
+    this.audioSyncAnomalies = 0,
+    this.deepfakeFaceCandidates = 0,
   });
 
   factory ForensicSummary.fromJson(
@@ -162,6 +172,31 @@ class ForensicSummary {
         (summaryMap['splice_candidates'] as num?)?.toInt() ??
         0;
 
+    int objManip =
+        (summaryMap['OBJECT_MANIPULATION_CANDIDATE'] as num?)?.toInt() ??
+        (summaryMap['object_manipulation_candidates'] as num?)?.toInt() ??
+        0;
+
+    int comp =
+        (summaryMap['COMPRESSION_ANOMALY'] as num?)?.toInt() ??
+        (summaryMap['compression_anomalies'] as num?)?.toInt() ??
+        0;
+
+    int meta =
+        (summaryMap['METADATA_INCONSISTENCY'] as num?)?.toInt() ??
+        (summaryMap['metadata_inconsistencies'] as num?)?.toInt() ??
+        0;
+
+    int audio =
+        (summaryMap['AUDIO_SYNC_ANOMALY'] as num?)?.toInt() ??
+        (summaryMap['audio_sync_anomalies'] as num?)?.toInt() ??
+        0;
+
+    int deepfake =
+        (summaryMap['DEEPFAKE_FACE_CANDIDATE'] as num?)?.toInt() ??
+        (summaryMap['deepfake_face_candidates'] as num?)?.toInt() ??
+        0;
+
     // Compute dynamically from anomalies list if anomalies list is provided.
     if (anomalies != null && anomalies.isNotEmpty) {
       if (total == 0) {
@@ -179,6 +214,11 @@ class ForensicSummary {
       int calcScene = 0;
       int calcCopyMove = 0;
       int calcSplice = 0;
+      int calcObjManip = 0;
+      int calcComp = 0;
+      int calcMeta = 0;
+      int calcAudio = 0;
+      int calcDeepfake = 0;
 
       for (final a in anomalies) {
         if (a.isPtsGap) {
@@ -197,6 +237,16 @@ class ForensicSummary {
           calcCopyMove++;
         } else if (a.isSplice) {
           calcSplice++;
+        } else if (a.isObjectManipulation) {
+          calcObjManip++;
+        } else if (a.isCompressionAnomaly) {
+          calcComp++;
+        } else if (a.isMetadataAnomaly) {
+          calcMeta++;
+        } else if (a.isAudioSyncAnomaly) {
+          calcAudio++;
+        } else if (a.isDeepfake) {
+          calcDeepfake++;
         } else if (a.type.contains('FREEZE')) {
           calcFreeze++;
         } else if (a.type.contains('DUPLICATE')) {
@@ -206,49 +256,22 @@ class ForensicSummary {
         }
       }
 
-      if (visDisc == 0) {
-        visDisc = calcVisDisc;
-      }
-
-      if (ptsGaps == 0) {
-        ptsGaps = calcPtsGaps;
-      }
-
-      if (visAnom == 0) {
-        visAnom = calcVisAnom;
-      }
-
-      if (corrFrames == 0) {
-        corrFrames = calcCorr;
-      }
-
-      if (ai == 0) {
-        ai = calcAi;
-      }
-
-      if (mod == 0) {
-        mod = calcMod;
-      }
-
-      if (freeze == 0) {
-        freeze = calcFreeze;
-      }
-
-      if (dup == 0) {
-        dup = calcDup;
-      }
-
-      if (scene == 0) {
-        scene = calcScene;
-      }
-
-      if (copyMove == 0) {
-        copyMove = calcCopyMove;
-      }
-
-      if (splice == 0) {
-        splice = calcSplice;
-      }
+      if (visDisc == 0) visDisc = calcVisDisc;
+      if (ptsGaps == 0) ptsGaps = calcPtsGaps;
+      if (visAnom == 0) visAnom = calcVisAnom;
+      if (corrFrames == 0) corrFrames = calcCorr;
+      if (ai == 0) ai = calcAi;
+      if (mod == 0) mod = calcMod;
+      if (freeze == 0) freeze = calcFreeze;
+      if (dup == 0) dup = calcDup;
+      if (scene == 0) scene = calcScene;
+      if (copyMove == 0) copyMove = calcCopyMove;
+      if (splice == 0) splice = calcSplice;
+      if (objManip == 0) objManip = calcObjManip;
+      if (comp == 0) comp = calcComp;
+      if (meta == 0) meta = calcMeta;
+      if (audio == 0) audio = calcAudio;
+      if (deepfake == 0) deepfake = calcDeepfake;
 
       missing =
           visDisc +
@@ -260,7 +283,7 @@ class ForensicSummary {
 
     final calculatedTotal = total > 0
         ? total
-        : (freeze + dup + missing + corrupted + mod + scene + ai);
+        : (freeze + dup + missing + corrupted + mod + scene + ai + objManip + comp + meta + audio + deepfake);
 
     return ForensicSummary(
       totalAnomalies: calculatedTotal,
@@ -280,6 +303,11 @@ class ForensicSummary {
       aiContentCandidates: ai,
       copyMoveCandidates: copyMove,
       spliceCandidates: splice,
+      objectManipulationCandidates: objManip,
+      compressionAnomalies: comp,
+      metadataInconsistencies: meta,
+      audioSyncAnomalies: audio,
+      deepfakeFaceCandidates: deepfake,
     );
   }
 
@@ -295,6 +323,11 @@ class ForensicSummary {
       'ai_content_candidates': aiContentCandidates,
       'copy_move_candidates': copyMoveCandidates,
       'splice_candidates': spliceCandidates,
+      'object_manipulation_candidates': objectManipulationCandidates,
+      'compression_anomalies': compressionAnomalies,
+      'metadata_inconsistencies': metadataInconsistencies,
+      'audio_sync_anomalies': audioSyncAnomalies,
+      'deepfake_face_candidates': deepfakeFaceCandidates,
     };
   }
 }

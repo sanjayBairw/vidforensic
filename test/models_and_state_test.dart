@@ -288,5 +288,109 @@ void main() {
       expect(results.summary?.duplicateFrames, 0);
       expect(results.summary?.sceneChanges, 0);
     });
+
+    test('Extended Forgery Anomaly getters and ForensicSummary parsing', () {
+      final anomaliesJson = [
+        {
+          'detector': 'object_manipulation_detector',
+          'type': 'OBJECT_MANIPULATION_CANDIDATE',
+          'frame_start': 10,
+          'frame_end': 20,
+          'timestamp_start': 0.4,
+          'timestamp_end': 0.8,
+          'duration': 0.4,
+          'score': 0.88,
+          'confidence': 'HIGH',
+          'signals': {'discontinuity_score': 0.82},
+          'evidence': 'Unnatural boundary discontinuity around tracked component',
+        },
+        {
+          'detector': 'compression_detector',
+          'type': 'COMPRESSION_ANOMALY',
+          'frame_start': 30,
+          'frame_end': 40,
+          'timestamp_start': 1.2,
+          'timestamp_end': 1.6,
+          'duration': 0.4,
+          'score': 0.75,
+          'confidence': 'MEDIUM',
+          'signals': {'double_compression_periodic': true},
+          'evidence': 'FFT periodicity detected in GOP structure',
+        },
+        {
+          'detector': 'metadata_forensics',
+          'type': 'METADATA_INCONSISTENCY',
+          'frame_start': 0,
+          'frame_end': 0,
+          'timestamp_start': 0.0,
+          'timestamp_end': 0.0,
+          'duration': 0.0,
+          'score': 0.65,
+          'confidence': 'MEDIUM',
+          'signals': {'fps_delta': 1.5},
+          'evidence': 'Nominal vs calculated FPS mismatch',
+        },
+        {
+          'detector': 'audio_sync_detector',
+          'type': 'AUDIO_SYNC_ANOMALY',
+          'frame_start': 50,
+          'frame_end': 55,
+          'timestamp_start': 2.0,
+          'timestamp_end': 2.2,
+          'duration': 0.2,
+          'score': 0.70,
+          'confidence': 'MEDIUM',
+          'signals': {'energy_spike': true},
+          'evidence': 'Sharp audio energy cut without video transition',
+        },
+        {
+          'detector': 'deepfake_detector',
+          'type': 'DEEPFAKE_FACE_CANDIDATE',
+          'frame_start': 60,
+          'frame_end': 70,
+          'timestamp_start': 2.4,
+          'timestamp_end': 2.8,
+          'duration': 0.4,
+          'score': 0.85,
+          'confidence': 'HIGH',
+          'signals': {'boundary_variance': 0.35},
+          'evidence': 'Facial boundary blending artifacts detected',
+        },
+      ];
+
+      final anomalies = anomaliesJson.map((j) => Anomaly.fromJson(j)).toList();
+
+      expect(anomalies[0].isObjectManipulation, isTrue);
+      expect(anomalies[0].displayTitle, 'Object Manipulation Candidate');
+
+      expect(anomalies[1].isCompressionAnomaly, isTrue);
+      expect(anomalies[1].displayTitle, 'Compression Forensics Anomaly');
+
+      expect(anomalies[2].isMetadataAnomaly, isTrue);
+      expect(anomalies[2].displayTitle, 'Metadata Forensic Discrepancy');
+
+      expect(anomalies[3].isAudioSyncAnomaly, isTrue);
+      expect(anomalies[3].displayTitle, 'Audio/Video Synchronization Anomaly');
+
+      expect(anomalies[4].isDeepfake, isTrue);
+      expect(anomalies[4].displayTitle, 'Deepfake Face Candidate');
+
+      // Test ForensicSummary with extended anomaly counters
+      final summary = ForensicSummary.fromJson({}, anomalies: anomalies);
+      expect(summary.objectManipulationCandidates, 1);
+      expect(summary.compressionAnomalies, 1);
+      expect(summary.metadataInconsistencies, 1);
+      expect(summary.audioSyncAnomalies, 1);
+      expect(summary.deepfakeFaceCandidates, 1);
+
+      // Verify serialization round-trip
+      final summaryJson = summary.toJson();
+      final deserialized = ForensicSummary.fromJson(summaryJson);
+      expect(deserialized.objectManipulationCandidates, 1);
+      expect(deserialized.compressionAnomalies, 1);
+      expect(deserialized.metadataInconsistencies, 1);
+      expect(deserialized.audioSyncAnomalies, 1);
+      expect(deserialized.deepfakeFaceCandidates, 1);
+    });
   });
 }

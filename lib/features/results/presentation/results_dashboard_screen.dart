@@ -446,6 +446,18 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final spliceAnomalies = anomalies
         .where((a) => a.isSplice || a.type.toUpperCase().contains('SPLICE'))
         .toList();
+    final objAnomalies = anomalies
+        .where((a) => a.isObjectManipulation || a.type.toUpperCase().contains('OBJECT'))
+        .toList();
+    final compAnomalies = anomalies
+        .where((a) => a.isCompressionAnomaly || a.type.toUpperCase().contains('COMPRESSION'))
+        .toList();
+    final metaAnomalies = anomalies
+        .where((a) => a.isMetadataAnomaly || a.type.toUpperCase().contains('METADATA'))
+        .toList();
+    final audioAnomalies = anomalies
+        .where((a) => a.isAudioSyncAnomaly || a.type.toUpperCase().contains('AUDIO') || a.type.toUpperCase().contains('DESYNC'))
+        .toList();
 
     // Counts
     final int freezeCount = summary?.freezeFrames ?? freezeAnomalies.length;
@@ -456,6 +468,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final int sceneCount = summary?.sceneChanges ?? sceneAnomalies.length;
     final int copyMoveCount = summary?.copyMoveCandidates ?? copyMoveAnomalies.length;
     final int spliceCount = summary?.spliceCandidates ?? spliceAnomalies.length;
+    final int objCount = summary?.objectManipulationCandidates ?? objAnomalies.length;
+    final int compCount = summary?.compressionAnomalies ?? compAnomalies.length;
+    final int metaCount = summary?.metadataInconsistencies ?? metaAnomalies.length;
+    final int audioCount = summary?.audioSyncAnomalies ?? audioAnomalies.length;
 
     // Availability checks
     final bool freezeAvailable = _isDetectorAvailable(res, 'freeze_results');
@@ -466,6 +482,10 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
     final bool sceneAvailable = _isDetectorAvailable(res, 'scene_results');
     final bool copyMoveAvailable = _isDetectorAvailable(res, 'copy_move_results');
     final bool spliceAvailable = _isDetectorAvailable(res, 'splicing_results');
+    final bool objAvailable = _isDetectorAvailable(res, 'object_manipulation_results');
+    final bool compAvailable = _isDetectorAvailable(res, 'compression_results');
+    final bool metaAvailable = _isDetectorAvailable(res, 'metadata_results');
+    final bool audioAvailable = _isDetectorAvailable(res, 'audio_sync_results');
 
     // ============================================================
     // DEBUG LOGGING
@@ -672,6 +692,46 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
             isAvailable: spliceAvailable,
             count: spliceCount,
             anomalies: spliceAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 9. OBJECT MANIPULATION & INPAINTING CARD
+          // ------------------------------------------------------
+          _buildObjectManipulationCard(
+            isAvailable: objAvailable,
+            count: objCount,
+            anomalies: objAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 10. COMPRESSION & RE-ENCODING ANALYSIS CARD
+          // ------------------------------------------------------
+          _buildCompressionForensicsCard(
+            isAvailable: compAvailable,
+            count: compCount,
+            anomalies: compAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 11. METADATA & CONTAINER TIMESTAMP CARD
+          // ------------------------------------------------------
+          _buildMetadataAuditCard(
+            isAvailable: metaAvailable,
+            count: metaCount,
+            anomalies: metaAnomalies,
+          ),
+          const SizedBox(height: 16),
+
+          // ------------------------------------------------------
+          // 12. AUDIO/VIDEO SYNCHRONIZATION CARD
+          // ------------------------------------------------------
+          _buildAudioSyncCard(
+            isAvailable: audioAvailable,
+            count: audioCount,
+            anomalies: audioAnomalies,
           ),
           const SizedBox(height: 24),
 
@@ -1387,6 +1447,291 @@ class _ResultsDashboardScreenState extends ConsumerState<ResultsDashboardScreen>
                 total: anomalies.length,
                 expanded: expanded,
                 color: spColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 9. OBJECT MANIPULATION DETECTOR CARD
+  Widget _buildObjectManipulationCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('OBJECT MANIPULATION DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NO OBJECT MANIPULATION DETECTED',
+        subtext: 'No suspicious object insertion, removal, or inpainting residuals.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final objColor = isDark ? Colors.tealAccent : Colors.teal[800]!;
+    const expandKey = 'object_manipulation';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.teal.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🎯 OBJECT MANIPULATION CANDIDATES',
+              color: objColor,
+              icon: Icons.track_changes,
+              statusBadgeText: 'DETECTED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Suspicious Object Changes: $count candidate sequence(s)',
+              style: TextStyle(fontSize: 13, color: objColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Frame Range', '${a.frameStart} → ${a.frameEnd}'),
+                    _buildDetailRow('Timestamp', '${a.timestampStart.toStringAsFixed(2)}s - ${a.timestampEnd.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Confidence', a.confidence),
+                    if (a.evidence.isNotEmpty)
+                      _buildDetailRow('Observation', a.evidence),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: objColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 10. COMPRESSION & RE-ENCODING ANALYSIS CARD
+  Widget _buildCompressionForensicsCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('COMPRESSION FORENSICS');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ NORMAL COMPRESSION PROFILE',
+        subtext: '8x8 CAG grid and GOP periodicity consistent with natural single encoding.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compColor = isDark ? Colors.blueAccent : Colors.blue[800]!;
+    const expandKey = 'compression';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.blue.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🗜️ COMPRESSION & RE-ENCODING',
+              color: compColor,
+              icon: Icons.compress,
+              statusBadgeText: 'FLAGGED',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Compression Inconsistencies: $count anomaly indicator(s)',
+              style: TextStyle(fontSize: 13, color: compColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Anomaly Type', a.displayTitle),
+                    _buildDetailRow('Timestamp', '${a.timestampStart.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Evidence', a.evidence),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: compColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 11. METADATA & CONTAINER TIMESTAMP CARD
+  Widget _buildMetadataAuditCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('METADATA FORENSICS');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ METADATA CONSISTENCY VERIFIED',
+        subtext: 'Container frames, nominal FPS, and timestamp continuity match decoded stream.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final metaColor = isDark ? Colors.orangeAccent : Colors.orange[800]!;
+    const expandKey = 'metadata';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.orange.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '📋 METADATA AUDIT DISCREPANCIES',
+              color: metaColor,
+              icon: Icons.info_outline,
+              statusBadgeText: 'DISCREPANCY',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Container/Stream Discrepancies: $count flagged variance(s)',
+              style: TextStyle(fontSize: 13, color: metaColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Discrepancy', a.displayTitle),
+                    _buildDetailRow('Details', a.evidence),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: metaColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 12. AUDIO/VIDEO SYNCHRONIZATION CARD
+  Widget _buildAudioSyncCard({
+    required bool isAvailable,
+    required int count,
+    required List<Anomaly> anomalies,
+  }) {
+    if (!isAvailable) {
+      return _buildUnavailableCard('AUDIO / VIDEO SYNC DETECTOR');
+    }
+
+    if (count == 0 && anomalies.isEmpty) {
+      return _buildCleanDetectorCard(
+        title: '✓ AUDIO/VIDEO SYNC VERIFIED',
+        subtext: 'A/V duration delta and energy envelope are within normal tolerances.',
+      );
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final audColor = isDark ? Colors.cyanAccent : Colors.cyan[800]!;
+    const expandKey = 'audio_sync';
+    final expanded = _isExpanded(expandKey);
+    final visibleAnomalies = expanded ? anomalies : anomalies.take(3).toList();
+
+    return ForensicCard(
+      borderColor: Colors.cyan.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetectorCardHeader(
+              title: '🔊 AUDIO / VIDEO SYNCHRONIZATION',
+              color: audColor,
+              icon: Icons.graphic_eq,
+              statusBadgeText: 'ANOMALY',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'A/V Sync & Audio Cuts: $count flagged indicator(s)',
+              style: TextStyle(fontSize: 13, color: audColor),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...visibleAnomalies.map((a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Indicator', a.displayTitle),
+                    _buildDetailRow('Timestamp', '${a.timestampStart.toStringAsFixed(2)}s'),
+                    _buildDetailRow('Evidence', a.evidence),
+                    const Divider(height: 12),
+                  ],
+                ),
+              );
+            }),
+            if (anomalies.length > 3)
+              _buildExpandToggle(
+                expandKey: expandKey,
+                total: anomalies.length,
+                expanded: expanded,
+                color: audColor,
               ),
           ],
         ),

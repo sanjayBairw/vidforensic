@@ -93,6 +93,23 @@ class Anomaly {
   bool get isCopyMove => type == 'COPY_MOVE_CANDIDATE';
   bool get isSplice => type == 'SPLICE_CANDIDATE';
   bool get isForgeryCandidate => isCopyMove || isSplice;
+  bool get isObjectManipulation =>
+      type == 'OBJECT_MANIPULATION_CANDIDATE' ||
+      type == 'OBJECT_ADDITION_CANDIDATE' ||
+      type == 'OBJECT_REMOVAL_CANDIDATE' ||
+      type == 'OBJECT_REPLACEMENT_CANDIDATE';
+  bool get isCompressionAnomaly =>
+      type == 'COMPRESSION_ANOMALY' ||
+      type == 'DOUBLE_COMPRESSION_CANDIDATE' ||
+      type == 'LOCALIZED_COMPRESSION_INCONSISTENCY';
+  bool get isMetadataAnomaly => type == 'METADATA_INCONSISTENCY';
+  bool get isAudioSyncAnomaly =>
+      type == 'AUDIO_SYNC_ANOMALY' ||
+      type == 'AV_DESYNC_CANDIDATE' ||
+      type == 'ABRUPT_AUDIO_CUT_DISCONTINUITY';
+  bool get isDeepfake =>
+      type == 'DEEPFAKE_FACE_MANIPULATION_CANDIDATE' ||
+      type == 'DEEPFAKE_FACE_CANDIDATE';
 
   String get evidenceQuality => rawJson['evidence_quality']?.toString().toUpperCase() ?? confidence;
   String get naturalArtifactRisk => rawJson['natural_artifact_risk']?.toString().toUpperCase() ?? rawJson['contextual_risk']?.toString().toUpperCase() ?? 'LOW';
@@ -206,6 +223,24 @@ class Anomaly {
         return 'Copy-Move Forgery Candidate';
       case 'SPLICE_CANDIDATE':
         return 'Splice Boundary Candidate';
+      case 'OBJECT_MANIPULATION_CANDIDATE':
+      case 'OBJECT_ADDITION_CANDIDATE':
+      case 'OBJECT_REMOVAL_CANDIDATE':
+      case 'OBJECT_REPLACEMENT_CANDIDATE':
+        return 'Object Manipulation Candidate';
+      case 'COMPRESSION_ANOMALY':
+      case 'DOUBLE_COMPRESSION_CANDIDATE':
+      case 'LOCALIZED_COMPRESSION_INCONSISTENCY':
+        return 'Compression Forensics Anomaly';
+      case 'METADATA_INCONSISTENCY':
+        return 'Metadata Forensic Discrepancy';
+      case 'AUDIO_SYNC_ANOMALY':
+      case 'AV_DESYNC_CANDIDATE':
+      case 'ABRUPT_AUDIO_CUT_DISCONTINUITY':
+        return 'Audio/Video Synchronization Anomaly';
+      case 'DEEPFAKE_FACE_MANIPULATION_CANDIDATE':
+      case 'DEEPFAKE_FACE_CANDIDATE':
+        return 'Deepfake Face Candidate';
       default:
         return type.replaceAll('_', ' ');
     }
